@@ -1,0 +1,62 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: givenaija_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_DB: givenaija
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: givenaija_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: givenaija_api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_NAME=GiveNaija API
+      - APP_ENV=production
+      - PORT=8000
+      - DEBUG=False
+      - SECRET_KEY=super-secret-jwt-key-givenaija-production-safe-32
+      - DATABASE_URL=postgresql+psycopg://postgres:postgrespassword@postgres:5432/givenaija
+      - TEST_DATABASE_URL=postgresql+psycopg://postgres:postgrespassword@postgres:5432/givenaija_test
+      - REDIS_URL=redis://redis:6379/0
+      - WEBHOOK_SECRET=mysecret
+      - CRON_API_KEY=give-naija-cron-secret-api-key
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  redis_data:
