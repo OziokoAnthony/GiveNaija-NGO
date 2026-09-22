@@ -1,0 +1,619 @@
+================================================================================
+          GIVENAIJA NGO — MASTER PROJECT EXPLANATION GUIDE
+              "Explain It Like I'm 10 Years Old" Edition
+   Team Mighty Spark (Victor & Anthony) | Product 10: NGO Donations & Members
+================================================================================
+
+Welcome! This document was written specifically for you to read, study, and 
+understand every single part of your GiveNaija backend project. 
+
+Everything here is broken down into simple English, using fun, real-life 
+examples (like toy stores, bank vaults, school diaries, and waiters). 
+By the time you finish reading this, you will understand:
+  1. What this project is and why it was built.
+  2. Every package/tool we installed and what it does.
+  3. Every single file, folder, function, and database table.
+  4. How files "talk" to each other (imports, exports, and connections).
+  5. How to answer any question your examiners throw at you with total confidence!
+
+Let's begin!
+
+================================================================================
+TABLE OF CONTENTS
+================================================================================
+1. The Big Story: What is GiveNaija?
+2. The "Hard Problem" Explained With a Piggy Bank
+3. The Toolbox: All Dependencies Explained Simply
+4. The 3-Tier Rule (Waiter -> Chef -> Pantry)
+5. Folder-by-Folder, File-by-File Line Breakdown
+   - Root Files
+   - app/core/ (The Brain & Security)
+   - app/db/ (The Database & Memory)
+   - app/domains/ (The 6 Feature Rooms)
+     * auth (ID Cards & Logins)
+     * campaigns (Fundraising Projects)
+     * donations (The Money Counter)
+     * donations/ledger (The Double-Entry Accountant)
+     * audit (The Indelible Diary)
+     * webhooks (The Delivery Guy)
+   - tests/ (The Quality Inspectors)
+6. The Journey of 10,000 Naira (Step-by-Step Request Flow)
+7. Presentation & Defense Cheat Sheet (Questions & Winning Answers)
+
+================================================================================
+1. THE BIG STORY: WHAT IS GIVENAIJA?
+================================================================================
+
+Imagine your school wants to raise money to build a brand-new water well 
+(borehole) for a nearby village, or buy schoolbooks for an orphanage.
+
+People from all over Nigeria want to donate money:
+  - Some send money through bank transfers.
+  - Some pay online with their debit cards (Paystack or Flutterwave).
+  - Some promise to pay next month (pledges).
+
+If the school manages this on a messy paper notebook or Excel sheet, chaos 
+happens:
+  - Someone writes down the same 5,000 Naira twice by mistake.
+  - An internet glitch charges someone's card once, but the computer counts it 
+    three times because the network re-sent the message.
+  - A dishonest worker sneaks into the notebook and erases a donation, putting 
+    the cash in their pocket.
+
+GiveNaija is a super-smart computer program (a Backend Web API) that stops all 
+of those problems forever. It acts as an honest, robotic bank manager who 
+watches every single Naira, makes sure no money is ever counted twice, and 
+writes down every single action in a steel diary that nobody can ever erase or 
+edit!
+
+================================================================================
+2. THE "HARD PROBLEM" EXPLAINED WITH A PIGGY BANK
+================================================================================
+
+In this capstone project, the teachers set a specific "Hard Problem" to test if 
+you are a great software engineer.
+
+The Hard Problem is:
+  "Record every Naira exactly once, with an audit trail nobody can edit."
+
+Think of a piggy bank with a magic slot:
+1. Every time a coin goes in, it has a unique serial number stamped on it 
+   (the Bank Reference, like "TXN-98765").
+2. If two people try to push coins with the exact same serial number into the 
+   slot at the exact same second, the slot locks shut and says: 
+   "Stop! I already have this coin! (HTTP 409 Conflict)".
+3. Every time a coin lands inside, a robot writes in a stone book: 
+   "At 2:15 PM, Officer Victor dropped in coin TXN-98765 worth 5,000 Naira".
+4. If anyone tries to bring an eraser or a pen to change what the robot wrote, 
+   the stone book gives them an electric shock! The database refuses to update 
+   or delete past entries.
+
+That is the Hard Problem, and our code solves it completely using 5 layers of 
+unbreakable armor:
+  - Layer 1: Database UNIQUE constraint on bank_ref (the physical lock).
+  - Layer 2: Concurrency Trap (catches two people hitting save at the exact same 
+    millisecond).
+  - Layer 3: Idempotency Key (remembers requests so network retries don't duplicate).
+  - Layer 4: Append-Only Triggers (PostgreSQL rules that block UPDATE and DELETE).
+  - Layer 5: HMAC-SHA256 Signatures (secret wax seals that block fake payment 
+    messages).
+
+================================================================================
+3. THE TOOLBOX: DEPENDENCIES EXPLAINED SIMPLY
+================================================================================
+
+Open the file called `pyproject.toml`. You will see a list of tools 
+(libraries/dependencies) that our project uses. Here is what every single tool 
+does in plain English:
+
+1. fastapi
+   - What it is: The Web Framework.
+   - Analogy: The Front Desk Receptionist. When someone opens a web browser or 
+     sends an HTTP request, FastAPI answers the door, checks what they want, and 
+     directs them to the right room.
+
+2. uvicorn
+   - What it is: The Lightning-Fast Server Engine (ASGI Server).
+   - Analogy: The engine inside the car. FastAPI is the luxury car body and 
+     seats; Uvicorn is the high-power engine under the hood that makes the car 
+     move.
+
+3. pydantic & pydantic-settings
+   - What it is: The Inspector & Form Checker.
+   - Analogy: A security guard holding a checklist. If someone tries to register 
+     without an email address, or sends an amount like "-500 Naira" (negative 
+     money), Pydantic slaps it away and says: "Invalid data! Fix this form!"
+
+4. sqlmodel
+   - What it is: The Translator between Python and SQL Database.
+   - Analogy: An expert translator who speaks both English (Python classes) and 
+     Database language (SQL tables). Built by the same genius who made FastAPI.
+
+5. psycopg (psycopg3)
+   - What it is: The High-Speed Telephone Cable to PostgreSQL.
+   - Analogy: A heavy-duty wire that connects our Python code directly to the 
+     PostgreSQL database running inside Docker.
+
+6. alembic
+   - What it is: The Database Time Machine (Migrations).
+   - Analogy: A construction foreman with blueprints. When we add a new table 
+     (like `ledger_entries`), Alembic looks at our Python code, compares it to 
+     the database, and safely builds the new columns without losing any existing 
+     data.
+
+7. pyjwt (JSON Web Tokens)
+   - What it is: The Digital VIP Wristband Maker.
+   - Analogy: When you pay to enter an amusement park, they give you a colored 
+     wristband. When a user logs in, PyJWT creates a signed token (wristband). 
+     For the next 1 hour, the user just shows this token to prove who they are.
+
+8. bcrypt & passlib
+   - What it is: The Password Blender.
+   - Analogy: A high-tech paper shredder. We NEVER store plain passwords like 
+     "Admin123!" in the database. Bcrypt blends the password into a crazy string 
+     like `$2b$12$e8x...`. Even if a thief steals the database, they cannot read 
+     anyone's password!
+
+9. redis
+   - What it is: The Lightning Memory Pad (In-Memory Cache).
+   - Analogy: A sticky notepad sitting right on the receptionist's desk. Instead 
+     of running to the basement file cabinet (PostgreSQL) every time someone asks 
+     "What campaigns are open?", the server writes the answer on the sticky note 
+     (Redis). It reads in 0.001 seconds!
+
+10. sse-starlette
+    - What it is: Server-Sent Events (Live Radio Broadcaster).
+    - Analogy: A radio station. When someone donates, the server speaks into the 
+      microphone, and every donor screen listening on the web browser updates 
+      instantly with celebratory confetti, without needing to refresh the page!
+
+11. google-cloud-firestore
+    - What it is: Cloud Activity Sync.
+    - Analogy: A backup bulletin board in Google Cloud that mirrors live 
+      activity feeds.
+
+12. httpx
+    - What it is: An Async Web Browser for Python.
+    - Analogy: A phone inside Python that allows our server to call external 
+      APIs or run high-speed tests.
+
+13. pytest & pytest-asyncio & pytest-cov
+    - What it is: The Quality Inspection Robots.
+    - Analogy: 31 robot inspectors that test every door, lock, and switch in 
+      the building. If anything is broken, they raise a red flag. Currently, 
+      all 31 pass with flying colors!
+
+================================================================================
+4. THE 3-TIER RULE (WAITER -> CHEF -> PANTRY)
+================================================================================
+
+In professional software engineering, you NEVER mix everything into one messy 
+file. We use the famous "3-Tier Layered Architecture". Think of a restaurant:
+
+  Tier 1: The ROUTER (router.py) -> The Waiter
+  - The waiter stands at the front, takes the customer's order (HTTP Request), 
+    and checks if they have enough money or a VIP badge (Authentication).
+  - The waiter NEVER cooks food! They pass the order to the Chef.
+
+  Tier 2: The SERVICE (service.py) -> The Master Chef
+  - The chef has the secret recipes (Business Logic).
+  - The chef decides: Is the campaign open? Has this bank reference been used? 
+    Calculate the new total! Write the audit log!
+  - The chef manages the cooking inside a single pot (Database Transaction). If 
+    salt spills, the chef throws the whole pot away and starts over (Rollback).
+
+  Tier 3: The MODEL (models.py) -> The Pantry / Fridge
+  - The pantry is where raw ingredients are stored in neat, labeled boxes 
+    (Database Tables with strict rules like UNIQUE, NOT NULL, PRIMARY KEY).
+
+If an examiner asks: "Where does your business logic live?", you immediately 
+answer: "In the Service layer, keeping routers thin and models declarative!"
+
+================================================================================
+5. FOLDER-BY-FOLDER, FILE-BY-FILE LINE BREAKDOWN
+================================================================================
+
+Let's walk through every single folder and file in your repository:
+
+--------------------------------------------------------------------------------
+5.1 ROOT FILES (The Building Entrance)
+--------------------------------------------------------------------------------
+
+* `pyproject.toml`
+  - What it does: The passport of the project. Tells Python: "My name is 
+    givenaija-backend, I need Python 3.11+, and here are the 13 tools I need 
+    installed." It also configures pytest to run in strict asyncio mode.
+
+* `.env` & `.env.example`
+  - What it does: The secret locker. Contains your database passwords, port 
+    numbers, and secret keys. `.env` is private and never pushed to public git. 
+    `.env.example` is a safe sample template for other developers.
+
+* `Dockerfile`
+  - What it does: The freeze-dried recipe to pack the entire application into a 
+    portable Docker shipping container so it can run on any Linux server in 
+    the world.
+
+* `docker-compose.yml`
+  - What it does: The Orchestra Conductor. With one command (`docker compose up`), 
+    it starts two independent services:
+      1. `postgres` (PostgreSQL 16) mapped to host port 5433.
+      2. `redis` (Redis 7) mapped to host port 6379.
+
+* `alembic.ini`
+  - What it does: Settings file for Alembic database migrations. Tells Alembic 
+    where the migration scripts live (`alembic/` folder).
+
+* `seed.py`
+  - What it does: The Starter Seed. When you start with a brand-new, empty 
+    database, running `python seed.py` automatically creates:
+      - Admin: admin@givenaija.org (password: Admin123!)
+      - Finance Officer: finance@givenaija.org (password: Finance123!)
+      - Donor: donor@givenaija.org (password: Donor123!)
+      - 3 Campaigns (Borehole, Orphanage, Medical Outreach)
+      - 1 Demo Donation with Receipt RCPT-000001-DEMO and a Ledger Entry.
+
+* `mock_payment_provider.py`
+  - What it does: The Gateway Simulator. Pretends to be Paystack or Flutterwave. 
+    It creates real cryptographic HMAC-SHA256 signatures, fires webhooks at 
+    our server, and tests duplicate events to prove our idempotency works.
+
+* `document.txt`
+  - The document you are reading right now!
+
+--------------------------------------------------------------------------------
+5.2 app/core/ (The Security Guards & Infrastructure)
+--------------------------------------------------------------------------------
+
+* `app/core/config.py`
+  - Purpose: Loads all settings from `.env`.
+  - Imports: `pydantic_settings.BaseSettings`.
+  - How it works: Reads `DATABASE_URL` (pointing to port 5433), `REDIS_URL`, and 
+    `JWT_SECRET`. Creates a single `settings` object.
+  - Exported to: Almost all files import `from app.core.config import settings`.
+
+* `app/core/security.py`
+  - Purpose: Cryptography powerhouse.
+  - Functions inside:
+    1. `hash_password(password)`: Uses `bcrypt.hashpw` with a random salt to 
+       scramble passwords before saving them in the database.
+    2. `verify_password(plain, hashed)`: Compares a typed password against the 
+       scrambled hash. Returns True or False.
+    3. `create_access_token(data)`: Generates a JWT string encoded with the 
+       user's ID, role, and a 60-minute expiration countdown.
+    4. `decode_access_token(token)`: Unpacks the token, verifies the secret 
+       signature, and checks if it expired.
+    5. `verify_webhook_signature(raw_body, signature)`: Computes HMAC-SHA256 
+       using the secret key and compares it to the incoming `X-Signature` header 
+       using `hmac.compare_digest` (constant time comparison, preventing timing 
+       attacks).
+
+* `app/core/deps.py`
+  - Purpose: Dependency Injection & Role-Based Access Control (RBAC).
+  - How it works:
+    - `get_current_user`: Looks at the HTTP request header `Authorization: Bearer <token>`, 
+      decodes it using `security.py`, and looks up the user in the database.
+    - `require_admin`: Rejects anyone who is not an Admin with HTTP 403 Forbidden.
+    - `require_finance`: Allows Finance Officers and Admins.
+    - `require_donor`: Allows Donors.
+
+* `app/core/errors.py`
+  - Purpose: Uniform error envelope.
+  - How it works: Defines `AppException(status_code, code, message)`. If anything 
+    goes wrong anywhere in the system, it formats the error into this clean shape:
+    ```json
+    {
+      "error": {
+        "code": "DUPLICATE_BANK_REFERENCE",
+        "message": "Bank reference 'TXN-001' has already been recorded.",
+        "request_id": "c7a14e6b-..."
+      }
+    }
+    ```
+
+* `app/core/middleware.py`
+  - Purpose: Wraps around every single HTTP request entering the server.
+  - Two Middlewares inside:
+    1. `RequestLoggingAndTimingMiddleware`: Generates a random `X-Request-ID` UUID 
+       so every log line can be traced. Measures how many milliseconds the server 
+       took and writes it to `X-Process-Time`.
+    2. `RateLimiterMiddleware`: Guards the login door (`POST /auth/login`). If someone 
+       tries to guess passwords more than 5 times in 60 seconds from the same IP, 
+       it blocks them with `HTTP 429 Too Many Requests` and a `Retry-After: 60` header!
+
+* `app/core/broadcaster.py`
+  - Purpose: The Real-Time Event Station for Server-Sent Events (SSE).
+  - How it works: Maintains an `asyncio.Queue` for every campaign. When a client 
+    opens the live dashboard at `GET /campaigns/{id}/stream`, they get plugged in. 
+    When money arrives, `broadcast_donation_event()` shouts to all queues, and 
+    the browser immediately sees the update!
+
+* `app/core/idempotency.py`
+  - Purpose: Safe retries for payment requests.
+  - How it works: Looks up the `Idempotency-Key` header in the `idempotency_keys` 
+    table. If seen before, it returns the saved JSON response immediately without 
+    running the code again.
+
+--------------------------------------------------------------------------------
+5.3 app/db/ (The Memory & Storage Room)
+--------------------------------------------------------------------------------
+
+* `app/db/session.py`
+  - Purpose: Creates the database engine and provides sessions.
+  - How it works: Creates `engine = create_engine(settings.DATABASE_URL)`. 
+    Defines `get_db()` which gives each HTTP request its own fresh session and 
+    closes it when the request finishes.
+
+* `app/db/base.py`
+  - Purpose: The Master Model Registry for Alembic.
+  - How it works: Imports all models (`auth`, `campaigns`, `donations`, `audit`, 
+    `webhooks`, `ledger`). When Alembic inspects `SQLModel.metadata`, it sees all 
+    tables in one place.
+
+* `app/db/migrations.py`
+  - Purpose: Programmatic migration runner.
+  - How it works: Calls `alembic.command.upgrade(cfg, "head")` automatically 
+    when `app/main.py` starts up.
+
+* `app/db/redis.py`
+  - Purpose: Redis cache manager.
+  - Functions: `get_cache(key)`, `set_cache(key, value, ttl)`, and 
+    `invalidate_cache(pattern)` (which purges keys matching `cache:campaigns:*`).
+
+* `app/db/firestore.py`
+  - Purpose: Syncs donations to Google Cloud Firestore feed. Gracefully logs a 
+    notice and continues if running in offline development.
+
+--------------------------------------------------------------------------------
+5.4 app/domains/ (The 6 Feature Rooms)
+--------------------------------------------------------------------------------
+
+Each domain is a self-contained mini-application following the Router -> Service -> Model rule:
+
+### ROOM 1: `auth` (Users & Members)
+* `models.py`:
+  - `User`: Table `users` (id, email UNIQUE, password_hash, role, is_active).
+  - `Member`: Table `members` (id, user_id UNIQUE foreign key to users.id, phone, 
+    member_code UNIQUE).
+* `schemas.py`: Pydantic shapes for `RegisterRequest`, `LoginRequest`, `TokenResponse`.
+* `service.py`:
+  - `register_user()`: Starts a transaction. Inserts User. If role is DONOR, 
+    inserts Member profile. Inserts an AuditLog row. Calls `session.commit()`.
+  - `authenticate_user()`: Checks email & bcrypt password. Emits signed JWT token.
+* `router.py`:
+  - `POST /api/v1/auth/register` (201 Created)
+  - `POST /api/v1/auth/login` (200 OK with Bearer token)
+
+### ROOM 2: `campaigns` (Fundraising & Live Feeds)
+* `models.py`:
+  - `Campaign`: Table `campaigns` (id, title, goal_amount in kobo, raised_amount in kobo, 
+    status: "open" or "closed").
+* `schemas.py`: `CampaignCreate`, `CampaignResponse`.
+* `service.py`:
+  - `list_campaigns()`: Checks Redis first! If missing, loads from PostgreSQL, 
+    caches in Redis for 60 seconds, and returns.
+  - `create_campaign()`: Admin-only. Inserts new campaign, writes audit log, 
+    commits, and invalidates Redis cache.
+  - `close_campaign()`: Marks campaign as "closed". No further donations accepted!
+* `router.py`:
+  - `GET /api/v1/campaigns`
+  - `POST /api/v1/campaigns` (Admin only)
+  - `POST /api/v1/campaigns/{id}/close` (Admin only)
+  - `GET /api/v1/campaigns/{id}/stream` (SSE live donation stream)
+
+### ROOM 3: `donations` (Donation Recording & Receipts)
+* `models.py`:
+  - `Donation`: Table `donations` (id, campaign_id FK, amount in kobo, bank_ref UNIQUE, 
+    recorded_by FK, at timestamp).
+  - `Receipt`: Table `receipts` (id, donation_id UNIQUE FK, number UNIQUE e.g. "RCPT-000001", 
+    issued_at).
+  - `Pledge`: Table `pledges` (id, campaign_id FK, donor_id FK, amount, status).
+  - `IdempotencyRecord`: Table `idempotency_keys` (key UNIQUE, endpoint, response_json).
+* `schemas.py`: `DonationCreate`, `PledgeCreate`, `ReceiptResponse`, `StatementReportResponse`.
+* `service.py`:
+  - `record_donation()`: The core transaction engine!
+    1. Checks if campaign is open (if closed, raises 409).
+    2. Checks idempotency key (if retry, returns saved response).
+    3. Checks if `bank_ref` already exists (raises 409).
+    4. ATOMIC TRANSACTION:
+       - Inserts Donation row.
+       - Increments `campaign.raised_amount += amount`.
+       - Inserts immutable LedgerEntry (credit).
+       - Inserts AuditLog row.
+       - Saves IdempotencyRecord.
+       - `session.commit()`.
+    5. Invalidate Redis campaign cache.
+    6. Broadcasts real-time event to SSE broadcaster!
+* `router.py`:
+  - `POST /api/v1/donations` (Finance or Admin only)
+  - `POST /api/v1/pledges` (Donor pledges future money)
+  - `GET /api/v1/donations/me` (Donor views personal donations)
+  - `GET /api/v1/receipts/{id}` (View permanent receipt)
+  - `GET /api/v1/reports/statement` (Finance exports accounting report)
+
+### ROOM 4: `donations/ledger/` (Double-Entry Financial Accounting)
+* `models.py`:
+  - `LedgerEntry`: Table `ledger_entries` (id, donation_id UNIQUE FK, campaign_id FK, 
+    entry_type: "credit"|"debit"|"refund", amount_ngn: Decimal(15,2), description, recorded_at).
+* `service.py`:
+  - `create_ledger_entry()`: Called by `record_donation()` inside the same transaction.
+  - `get_campaign_ledger()`: Returns full accounting credit/debit history.
+  - `get_donor_ledger()`: Queries personal payments by joining Member and Donation.
+  - `get_total_credited()`: Sums all CREDIT amounts for a campaign.
+* `router.py`:
+  - `GET /api/v1/ledger/campaign/{id}` (Finance view)
+  - `GET /api/v1/ledger/me` (Donor view)
+  - `GET /api/v1/ledger/campaign/{id}/verify` (Admin Reconciliation Check):
+    Sums all ledger CREDIT entries and compares against `campaign.raised_amount`. 
+    Returns `match: true` and `status: "OK"` if balanced!
+
+### ROOM 5: `audit` (The Indelible Diary)
+* `models.py`:
+  - `AuditLog`: Table `audit_log` (id, actor_id FK nullable, action, target_type, 
+    target_id, details, at timestamp).
+* `service.py`:
+  - `list_logs()`: Paginated log viewer for administrators.
+  - `enforce_append_only_rules(engine)`:
+    - On PostgreSQL: Runs SQL DDL creating stored function 
+      `prevent_audit_log_modifications()` and trigger `trg_audit_log_append_only`.
+      Any query attempting `UPDATE audit_log` or `DELETE FROM audit_log` is aborted!
+    - On SQLite: Creates two triggers raising `RAISE(ABORT, 'Audit log is append-only')`.
+* `router.py`:
+  - `GET /api/v1/admin/audit-log` (Admin only)
+
+### ROOM 6: `webhooks` (The Payment Gateway Delivery Guy)
+* `models.py`:
+  - `ProcessedEvent`: Table `processed_events` (id, event_id UNIQUE, reference, is_orphan).
+* `service.py`:
+  - `process_payment()`:
+    1. Verifies HMAC-SHA256 signature using secret key.
+    2. Checks `processed_events` table for `event_id`. If duplicate, returns 200 OK immediately.
+    3. Looks up referenced campaign. If campaign doesn't exist, records event with 
+       `is_orphan=True`, writes an audit log, and returns 200 OK so the gateway stops 
+       spamming, while alerting finance of unlinked funds.
+    4. If valid, executes atomic donation recording, ledger credit, audit log, 
+       updates campaign, and broadcasts SSE.
+* `router.py`:
+  - `POST /api/v1/webhooks/payment`
+
+--------------------------------------------------------------------------------
+5.5 app/api.py & app/main.py (The Grand Aggregators)
+--------------------------------------------------------------------------------
+
+* `app/api.py`:
+  - The Central Hub. Imports the 6 domain routers and merges them into one 
+    big `api_router`:
+    ```python
+    api_router.include_router(auth_router)
+    api_router.include_router(campaigns_router)
+    api_router.include_router(donations_router)
+    api_router.include_router(ledger_router)
+    api_router.include_router(audit_router)
+    api_router.include_router(webhooks_router)
+    ```
+
+* `app/main.py`:
+  - The Application Entrypoint.
+  - Sets up `@asynccontextmanager def lifespan(app)`:
+    - Runs on startup: initializes tables (`init_db()`), installs database triggers 
+      (`enforce_append_only_rules()`), and applies migrations (`run_migrations()`).
+  - Adds CORS middleware (allowing frontend web apps to connect).
+  - Adds Logging & Timing Middleware.
+  - Adds Rate Limiting Middleware.
+  - Mounts `api_router` under `/api/v1`.
+  - Defines `GET /health` (returns status: "healthy").
+  - Redirects root `GET /` directly to the interactive `/docs` Swagger page.
+
+--------------------------------------------------------------------------------
+5.6 tests/ (The 31-Test Inspection Squad)
+--------------------------------------------------------------------------------
+
+* `conftest.py`:
+  - Sets `APP_ENV = "testing"`.
+  - Creates an ultra-fast, isolated in-memory SQLite database (`sqlite:///:memory:`).
+  - Sets up database triggers and seeds demo users (Admin, Finance, Donor) for every test.
+* `test_hard_problem.py` (5 Tests):
+  - Proves double-counting is impossible.
+  - Proves concurrent race conditions fail safely with 409.
+  - Proves every action creates an audit row.
+  - Proves database blocks SQL UPDATE/DELETE on audit logs.
+  - Proves receipt generation is idempotent.
+* `test_auth_and_access.py` (7 Tests):
+  - Tests 401 Unauthorized, 403 Forbidden, member creation, duplicate email rejection, 
+    JWT tokens, and 429 rate limiting.
+* `test_donations_and_campaigns.py` (9 Tests):
+  - Tests bank reference uniqueness, idempotency keys, closed campaign rejection, 
+    pledges, and statements.
+* `test_ledger.py` (5 Tests):
+  - Tests finance ledger queries, donor personal history, automatic ledger row 
+    creation, and admin reconciliation match.
+* `test_webhooks_and_stream.py` (5 Tests):
+  - Tests HMAC signature verification, duplicate webhook deduplication, bad signature 
+    rejection, orphan event logging, and live SSE event broadcasting.
+
+================================================================================
+6. THE JOURNEY OF 10,000 NAIRA (STEP-BY-STEP FLOW)
+================================================================================
+
+Here is the exact movie of what happens inside the computer when an officer 
+records a 10,000 Naira donation:
+
+Step 1: The Request Arrives
+  The finance officer sends `POST /api/v1/donations` with JSON:
+  `{"campaign_id": 1, "amount": 1000000, "bank_ref": "TXN-777"}`
+  along with their Bearer JWT token in the header.
+
+Step 2: Security & Identity Check (deps.py)
+  `deps.py` unpacks the token. Checks the signature. Confirms the user is 
+  Finance Officer Victor.
+
+Step 3: Idempotency Check (idempotency.py)
+  Checks if `Idempotency-Key` was sent. If yes, checks table. If already processed, 
+  returns the previous response immediately.
+
+Step 4: Business Rules (service.py)
+  Queries Campaign #1. Is it open? Yes. 
+  Has "TXN-777" been recorded before? No.
+
+Step 5: The Atomic Transaction (All or Nothing)
+  Inside a single database transaction:
+  A. Inserts a row into `donations` (amount=1000000, bank_ref="TXN-777").
+  B. Updates `campaigns` raised_amount from 50,000 to 60,000.
+  C. Inserts a row into `ledger_entries` (type=CREDIT, amount_ngn=10000.00).
+  D. Inserts a row into `audit_log` (actor="Victor", action="RECORD_DONATION").
+  E. Calls `session.commit()`.
+
+Step 6: Real-Time Broadcast & Cache Busting
+  - Clears Redis key `cache:campaigns:*` so future visitors see the new 60,000 total.
+  - Sends a signal to `broadcaster.py`, which pushes an SSE event down the wire to 
+    all open donor dashboards.
+  - Returns `HTTP 201 Created` with the new donation details!
+
+================================================================================
+7. PRESENTATION & DEFENSE CHEAT SHEET (QUESTIONS & WINNING ANSWERS)
+================================================================================
+
+Memorize these 6 simple answers for your project defense:
+
+Q1: "Why did you use database triggers for the audit log instead of just writing 
+     it in Python?"
+A1: "Because if we only write the rule in Python, anyone with direct access to the 
+     database (like a rogue DBA, a hacker, or a corrupted script) could run 
+     'DELETE FROM audit_log'. By putting triggers inside PostgreSQL, the database 
+     engine itself refuses to delete or edit records, no matter who sends the command!"
+
+Q2: "What happens if two officers record the same bank reference at the exact same 
+     second?"
+A2: "Our 'donations' table has a database-level UNIQUE constraint on 'bank_ref'. 
+     PostgreSQL's ACID transaction lock ensures only one officer commits. The second 
+     officer immediately triggers an IntegrityError, which our service catches and 
+     returns as a clean HTTP 409 Conflict with the code 'DUPLICATE_BANK_REFERENCE'."
+
+Q3: "What is an Idempotency Key and why do you need it?"
+A3: "It protects against network dropouts. If a mobile app donates 10,000 Naira and 
+     the internet cuts out right as the server finishes processing, the app retries. 
+     Our server recognizes the Idempotency-Key, looks up the cached result, and returns 
+     the original HTTP 200 response without charging or recording the money twice!"
+
+Q4: "Why did you choose Server-Sent Events (SSE) instead of WebSockets?"
+A4: "Donation tickers are one-way: the server announces donations to donor screens, 
+     but donors don't need to send messages back over that stream. SSE runs on standard 
+     HTTP, bypasses corporate firewalls easily, has built-in auto-reconnection in 
+     web browsers, and uses 10x less server memory than WebSockets."
+
+Q5: "How do you prove that your campaign balances match actual financial records?"
+A5: "We built an automated reconciliation endpoint at GET /ledger/campaign/{id}/verify. 
+     It calculates the exact sum of all immutable CREDIT rows in the ledger and compares 
+     it with the campaign's raised_amount counter. If they match, it returns 'match: true' 
+     and status 'OK'."
+
+Q6: "Why is your PostgreSQL Docker port set to 5433 instead of 5432?"
+A6: "The host development machine already had a native PostgreSQL service running on 
+     port 5432. To prevent port collisions and authentication errors, we mapped Docker's 
+     external port to 5433 while keeping internal PostgreSQL on 5432. The app points 
+     cleanly to port 5433."
+
+================================================================================
+                         END OF STUDY GUIDE
+     You are 100% prepared. Go in there and deliver an amazing defense!
+================================================================================
