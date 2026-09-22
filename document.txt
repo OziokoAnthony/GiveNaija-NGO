@@ -1,619 +1,830 @@
 ================================================================================
-          GIVENAIJA NGO — MASTER PROJECT EXPLANATION GUIDE
-              "Explain It Like I'm 10 Years Old" Edition
-   Team Mighty Spark (Victor & Anthony) | Product 10: NGO Donations & Members
+          GIVENAIJA NGO — MASTER SWAGGER & API INTERACTIVE GUIDE
+            Complete Swagger UI Manual & Endpoint-by-Endpoint Reference
+    Team Mighty Spark (Victor & Anthony) | Product 10: NGO Donations & Members
 ================================================================================
 
-Welcome! This document was written specifically for you to read, study, and 
-understand every single part of your GiveNaija backend project. 
-
-Everything here is broken down into simple English, using fun, real-life 
-examples (like toy stores, bank vaults, school diaries, and waiters). 
-By the time you finish reading this, you will understand:
-  1. What this project is and why it was built.
-  2. Every package/tool we installed and what it does.
-  3. Every single file, folder, function, and database table.
-  4. How files "talk" to each other (imports, exports, and connections).
-  5. How to answer any question your examiners throw at you with total confidence!
-
-Let's begin!
+Welcome to the definitive guide to the GiveNaija Swagger (OpenAPI) Interactive 
+Documentation. This document is written to give you a complete, crystal-clear 
+understanding of how Swagger works, how to test every single endpoint right from 
+your web browser, how security and role permissions are enforced, and how to 
+defend your API design in front of examiners and technical evaluators.
 
 ================================================================================
 TABLE OF CONTENTS
 ================================================================================
-1. The Big Story: What is GiveNaija?
-2. The "Hard Problem" Explained With a Piggy Bank
-3. The Toolbox: All Dependencies Explained Simply
-4. The 3-Tier Rule (Waiter -> Chef -> Pantry)
-5. Folder-by-Folder, File-by-File Line Breakdown
-   - Root Files
-   - app/core/ (The Brain & Security)
-   - app/db/ (The Database & Memory)
-   - app/domains/ (The 6 Feature Rooms)
-     * auth (ID Cards & Logins)
-     * campaigns (Fundraising Projects)
-     * donations (The Money Counter)
-     * donations/ledger (The Double-Entry Accountant)
-     * audit (The Indelible Diary)
-     * webhooks (The Delivery Guy)
-   - tests/ (The Quality Inspectors)
-6. The Journey of 10,000 Naira (Step-by-Step Request Flow)
-7. Presentation & Defense Cheat Sheet (Questions & Winning Answers)
+1. What is Swagger UI & OpenAPI in GiveNaija?
+2. How to Access Swagger (URLs, Ports, and Redirections)
+3. Anatomy of the Swagger Interface (Header, Authorize, Tags, Schemas)
+4. Authentication & The "Authorize" Button (JWT Bearer Token Flow)
+   - Seeded Demo Accounts (Admin, Finance, Donor)
+   - Step-by-Step Authorization Instructions
+   - Understanding 401 Unauthorized vs 403 Forbidden
+5. Master Endpoint-by-Endpoint Guide (All 16 Endpoints Explained in Detail)
+   - [Health]
+       * GET  /health
+   - [Authentication]
+       * POST /api/v1/auth/register
+       * POST /api/v1/auth/login
+   - [Campaigns]
+       * GET  /api/v1/campaigns (Cached with Redis)
+       * POST /api/v1/campaigns (Admin only)
+       * POST /api/v1/campaigns/{id}/close (Admin only)
+       * GET  /api/v1/campaigns/{id}/stream (Server-Sent Events)
+   - [Donations & Pledges]
+       * POST /api/v1/donations (Idempotent & Append-Only)
+       * POST /api/v1/pledges (Donor only)
+       * GET  /api/v1/donations/me (Donor personal history)
+       * GET  /api/v1/receipts/{donation_id} (Numbered tax receipt)
+       * GET  /api/v1/reports/statement (Finance date-range export)
+   - [Ledger]
+       * GET  /api/v1/ledger/campaign/{campaign_id} (Finance/Admin)
+       * GET  /api/v1/ledger/me (Donor payment history)
+       * GET  /api/v1/ledger/campaign/{campaign_id}/verify (Admin reconciliation)
+   - [Audit Log & Administration]
+       * GET  /api/v1/admin/audit-log (Immutable append-only audit trail)
+   - [Payment Webhook]
+       * POST /api/v1/webhooks/payment (HMAC-SHA256 Signed)
+6. Critical Request Headers Demystified
+   - Authorization (Bearer Token)
+   - Idempotency-Key (UUID protection against duplicate charging)
+   - X-Signature (HMAC-SHA256 tamper-proof webhook verification)
+   - X-Request-ID (End-to-end request tracing)
+7. Error Handling & The Uniform Error Shape
+8. The Schemas Section: Pydantic Data Models & Validation
+9. Step-by-Step Interactive Demo Walkthrough (The 7-Step Test Flight)
+10. Swagger Defense & Viva Questions with Winning Answers
+APPENDIX: Project Architecture & Database Foundations Quick Reference
 
 ================================================================================
-1. THE BIG STORY: WHAT IS GIVENAIJA?
+1. WHAT IS SWAGGER UI & OPENAPI IN GIVENAIJA?
 ================================================================================
 
-Imagine your school wants to raise money to build a brand-new water well 
-(borehole) for a nearby village, or buy schoolbooks for an orphanage.
+Imagine visiting a high-end restaurant:
+- The OpenAPI Specification is the official recipe book and menu description 
+  written down in precise detail (what ingredients each dish requires, what size 
+  plate it is served on, and how much it costs). In software, this is a standard 
+  JSON document generated automatically at `/openapi.json`.
+- Swagger UI is the physical interactive menu handed to the guest at the table. 
+  It lets you look at every dish, see what ingredients it expects, and even 
+  press a button to "taste" the dish (send a live HTTP request to your running 
+  backend and get real data back instantly).
 
-People from all over Nigeria want to donate money:
-  - Some send money through bank transfers.
-  - Some pay online with their debit cards (Paystack or Flutterwave).
-  - Some promise to pay next month (pledges).
-
-If the school manages this on a messy paper notebook or Excel sheet, chaos 
-happens:
-  - Someone writes down the same 5,000 Naira twice by mistake.
-  - An internet glitch charges someone's card once, but the computer counts it 
-    three times because the network re-sent the message.
-  - A dishonest worker sneaks into the notebook and erases a donation, putting 
-    the cash in their pocket.
-
-GiveNaija is a super-smart computer program (a Backend Web API) that stops all 
-of those problems forever. It acts as an honest, robotic bank manager who 
-watches every single Naira, makes sure no money is ever counted twice, and 
-writes down every single action in a steel diary that nobody can ever erase or 
-edit!
+In GiveNaija:
+- We built the backend using FastAPI (Python).
+- FastAPI reads our Python type hints, Pydantic schemas, and route decorators.
+- From those, FastAPI automatically compiles the official OpenAPI 3.1.0 specification.
+- FastAPI then serves Swagger UI right in your browser at `/docs`.
+- There is ZERO manual writing of documentation. If a developer changes a field 
+  in `app/domains/campaigns/schemas.py`, Swagger UI updates automatically!
 
 ================================================================================
-2. THE "HARD PROBLEM" EXPLAINED WITH A PIGGY BANK
+2. HOW TO ACCESS SWAGGER (URLS, PORTS, AND REDIRECTIONS)
 ================================================================================
 
-In this capstone project, the teachers set a specific "Hard Problem" to test if 
-you are a great software engineer.
+When you start the GiveNaija server (e.g. `uv run uvicorn app.main:app --reload` 
+or via Docker Compose), the API runs on port 8000.
 
-The Hard Problem is:
-  "Record every Naira exactly once, with an audit trail nobody can edit."
+You can access the API documentation via any of these URLs:
 
-Think of a piggy bank with a magic slot:
-1. Every time a coin goes in, it has a unique serial number stamped on it 
-   (the Bank Reference, like "TXN-98765").
-2. If two people try to push coins with the exact same serial number into the 
-   slot at the exact same second, the slot locks shut and says: 
-   "Stop! I already have this coin! (HTTP 409 Conflict)".
-3. Every time a coin lands inside, a robot writes in a stone book: 
-   "At 2:15 PM, Officer Victor dropped in coin TXN-98765 worth 5,000 Naira".
-4. If anyone tries to bring an eraser or a pen to change what the robot wrote, 
-   the stone book gives them an electric shock! The database refuses to update 
-   or delete past entries.
+1. Root Auto-Redirect:
+   URL: http://127.0.0.1:8000/ or http://localhost:8000/
+   What happens: `app/main.py` defines a root route that automatically issues an 
+   HTTP 307 redirect directly to `/docs`. You don't even have to remember the 
+   word "docs" — just opening the root URL takes you straight to Swagger!
 
-That is the Hard Problem, and our code solves it completely using 5 layers of 
-unbreakable armor:
-  - Layer 1: Database UNIQUE constraint on bank_ref (the physical lock).
-  - Layer 2: Concurrency Trap (catches two people hitting save at the exact same 
-    millisecond).
-  - Layer 3: Idempotency Key (remembers requests so network retries don't duplicate).
-  - Layer 4: Append-Only Triggers (PostgreSQL rules that block UPDATE and DELETE).
-  - Layer 5: HMAC-SHA256 Signatures (secret wax seals that block fake payment 
-    messages).
+2. Interactive Swagger UI:
+   URL: http://127.0.0.1:8000/docs
+   What happens: Renders the full interactive Swagger documentation where you 
+   can test endpoints, log in, send requests, and inspect live responses.
+
+3. Alternative ReDoc Documentation:
+   URL: http://127.0.0.1:8000/redoc
+   What happens: Renders a clean, three-panel static reading view of your API 
+   documentation (great for reading and printing specifications).
+
+4. Raw OpenAPI JSON Contract:
+   URL: http://127.0.0.1:8000/openapi.json
+   What happens: Outputs the machine-readable OpenAPI 3.1 JSON document that 
+   powers Swagger, frontend SDK generators, and API gateways.
 
 ================================================================================
-3. THE TOOLBOX: DEPENDENCIES EXPLAINED SIMPLY
+3. ANATOMY OF THE SWAGGER INTERFACE
 ================================================================================
 
-Open the file called `pyproject.toml`. You will see a list of tools 
-(libraries/dependencies) that our project uses. Here is what every single tool 
-does in plain English:
+When you open http://127.0.0.1:8000/docs, you will see four distinct areas:
 
-1. fastapi
-   - What it is: The Web Framework.
-   - Analogy: The Front Desk Receptionist. When someone opens a web browser or 
-     sends an HTTP request, FastAPI answers the door, checks what they want, and 
-     directs them to the right room.
+A. The Header Banner:
+   - Displays the API Title: "GiveNaija API"
+   - Version tag: `1.0.0`
+   - Description block: Lists the 4 core guarantees of the GiveNaija platform:
+     1. Exactly Once (UNIQUE bank references & Idempotency-Key)
+     2. Unalterable Audit Trail (append-only triggers)
+     3. High Performance (Redis caching with write invalidation)
+     4. Real-time broadcast (Server-Sent Events ticker)
+   - Servers Dropdown: Defaults to `/` (relative to current host/port).
 
-2. uvicorn
-   - What it is: The Lightning-Fast Server Engine (ASGI Server).
-   - Analogy: The engine inside the car. FastAPI is the luxury car body and 
-     seats; Uvicorn is the high-power engine under the hood that makes the car 
-     move.
+B. The Green "Authorize" Button (Top Right):
+   - Features an open padlock icon.
+   - This controls the JWT Bearer authentication for the entire Swagger session.
+   - When clicked, a modal pops up asking for your Bearer token.
+   - Once authorized, the padlock locks shut, and Swagger automatically injects 
+     `Authorization: Bearer <your_token>` into every protected endpoint call!
 
-3. pydantic & pydantic-settings
-   - What it is: The Inspector & Form Checker.
-   - Analogy: A security guard holding a checklist. If someone tries to register 
-     without an email address, or sends an amount like "-500 Naira" (negative 
-     money), Pydantic slaps it away and says: "Invalid data! Fix this form!"
+C. The Tagged Endpoint Groups (The Accordion):
+   Endpoints are cleanly grouped into 7 logical domain tags:
+   1. Health (Server liveness check)
+   2. Authentication (User registration & JWT login)
+   3. Campaigns (Fundraising campaign CRUD & SSE stream)
+   4. Donations & Pledges (Bank transfer recording, pledges, receipts, statements)
+   5. Ledger (Double-entry credit ledger & reconciliation)
+   6. Audit Log & Administration (Tamper-proof audit inspection)
+   7. Payment Webhook (HMAC-SHA256 verified payment gateway receiver)
 
-4. sqlmodel
-   - What it is: The Translator between Python and SQL Database.
-   - Analogy: An expert translator who speaks both English (Python classes) and 
-     Database language (SQL tables). Built by the same genius who made FastAPI.
-
-5. psycopg (psycopg3)
-   - What it is: The High-Speed Telephone Cable to PostgreSQL.
-   - Analogy: A heavy-duty wire that connects our Python code directly to the 
-     PostgreSQL database running inside Docker.
-
-6. alembic
-   - What it is: The Database Time Machine (Migrations).
-   - Analogy: A construction foreman with blueprints. When we add a new table 
-     (like `ledger_entries`), Alembic looks at our Python code, compares it to 
-     the database, and safely builds the new columns without losing any existing 
-     data.
-
-7. pyjwt (JSON Web Tokens)
-   - What it is: The Digital VIP Wristband Maker.
-   - Analogy: When you pay to enter an amusement park, they give you a colored 
-     wristband. When a user logs in, PyJWT creates a signed token (wristband). 
-     For the next 1 hour, the user just shows this token to prove who they are.
-
-8. bcrypt & passlib
-   - What it is: The Password Blender.
-   - Analogy: A high-tech paper shredder. We NEVER store plain passwords like 
-     "Admin123!" in the database. Bcrypt blends the password into a crazy string 
-     like `$2b$12$e8x...`. Even if a thief steals the database, they cannot read 
-     anyone's password!
-
-9. redis
-   - What it is: The Lightning Memory Pad (In-Memory Cache).
-   - Analogy: A sticky notepad sitting right on the receptionist's desk. Instead 
-     of running to the basement file cabinet (PostgreSQL) every time someone asks 
-     "What campaigns are open?", the server writes the answer on the sticky note 
-     (Redis). It reads in 0.001 seconds!
-
-10. sse-starlette
-    - What it is: Server-Sent Events (Live Radio Broadcaster).
-    - Analogy: A radio station. When someone donates, the server speaks into the 
-      microphone, and every donor screen listening on the web browser updates 
-      instantly with celebratory confetti, without needing to refresh the page!
-
-11. google-cloud-firestore
-    - What it is: Cloud Activity Sync.
-    - Analogy: A backup bulletin board in Google Cloud that mirrors live 
-      activity feeds.
-
-12. httpx
-    - What it is: An Async Web Browser for Python.
-    - Analogy: A phone inside Python that allows our server to call external 
-      APIs or run high-speed tests.
-
-13. pytest & pytest-asyncio & pytest-cov
-    - What it is: The Quality Inspection Robots.
-    - Analogy: 31 robot inspectors that test every door, lock, and switch in 
-      the building. If anything is broken, they raise a red flag. Currently, 
-      all 31 pass with flying colors!
+D. The Schemas Section (Bottom of the Page):
+   - Located at the very bottom under the heading "Schemas".
+   - Shows all data models defined across the project (e.g. `CampaignCreate`, 
+     `DonationResponse`, `TokenResponse`, `RegisterRequest`).
+   - Clicking each model reveals its exact data types, constraints (e.g. `gt=0`, 
+     `min_length=8`), required vs optional fields, and example values.
 
 ================================================================================
-4. THE 3-TIER RULE (WAITER -> CHEF -> PANTRY)
+4. AUTHENTICATION & THE "AUTHORIZE" BUTTON (JWT BEARER TOKEN FLOW)
 ================================================================================
 
-In professional software engineering, you NEVER mix everything into one messy 
-file. We use the famous "3-Tier Layered Architecture". Think of a restaurant:
-
-  Tier 1: The ROUTER (router.py) -> The Waiter
-  - The waiter stands at the front, takes the customer's order (HTTP Request), 
-    and checks if they have enough money or a VIP badge (Authentication).
-  - The waiter NEVER cooks food! They pass the order to the Chef.
-
-  Tier 2: The SERVICE (service.py) -> The Master Chef
-  - The chef has the secret recipes (Business Logic).
-  - The chef decides: Is the campaign open? Has this bank reference been used? 
-    Calculate the new total! Write the audit log!
-  - The chef manages the cooking inside a single pot (Database Transaction). If 
-    salt spills, the chef throws the whole pot away and starts over (Rollback).
-
-  Tier 3: The MODEL (models.py) -> The Pantry / Fridge
-  - The pantry is where raw ingredients are stored in neat, labeled boxes 
-    (Database Tables with strict rules like UNIQUE, NOT NULL, PRIMARY KEY).
-
-If an examiner asks: "Where does your business logic live?", you immediately 
-answer: "In the Service layer, keeping routers thin and models declarative!"
-
-================================================================================
-5. FOLDER-BY-FOLDER, FILE-BY-FILE LINE BREAKDOWN
-================================================================================
-
-Let's walk through every single folder and file in your repository:
+GiveNaija uses stateless JSON Web Tokens (JWT) for authentication. Every secure 
+endpoint requires an `Authorization: Bearer <token>` header.
 
 --------------------------------------------------------------------------------
-5.1 ROOT FILES (The Building Entrance)
+A. Pre-Seeded Demo Accounts (From seed.py)
 --------------------------------------------------------------------------------
+When you seed the database (`uv run python seed.py`), three accounts are created:
 
-* `pyproject.toml`
-  - What it does: The passport of the project. Tells Python: "My name is 
-    givenaija-backend, I need Python 3.11+, and here are the 13 tools I need 
-    installed." It also configures pytest to run in strict asyncio mode.
+1. ADMIN ACCOUNT (Role: admin)
+   Email:    admin@givenaija.org
+   Password: Admin123!
+   Power:    Can create/close campaigns, reconcile ledgers, inspect audit logs.
 
-* `.env` & `.env.example`
-  - What it does: The secret locker. Contains your database passwords, port 
-    numbers, and secret keys. `.env` is private and never pushed to public git. 
-    `.env.example` is a safe sample template for other developers.
+2. FINANCE OFFICER ACCOUNT (Role: finance)
+   Email:    finance@givenaija.org
+   Password: Finance123!
+   Power:    Can record confirmed bank donations, view ledger, export statements.
 
-* `Dockerfile`
-  - What it does: The freeze-dried recipe to pack the entire application into a 
-    portable Docker shipping container so it can run on any Linux server in 
-    the world.
-
-* `docker-compose.yml`
-  - What it does: The Orchestra Conductor. With one command (`docker compose up`), 
-    it starts two independent services:
-      1. `postgres` (PostgreSQL 16) mapped to host port 5433.
-      2. `redis` (Redis 7) mapped to host port 6379.
-
-* `alembic.ini`
-  - What it does: Settings file for Alembic database migrations. Tells Alembic 
-    where the migration scripts live (`alembic/` folder).
-
-* `seed.py`
-  - What it does: The Starter Seed. When you start with a brand-new, empty 
-    database, running `python seed.py` automatically creates:
-      - Admin: admin@givenaija.org (password: Admin123!)
-      - Finance Officer: finance@givenaija.org (password: Finance123!)
-      - Donor: donor@givenaija.org (password: Donor123!)
-      - 3 Campaigns (Borehole, Orphanage, Medical Outreach)
-      - 1 Demo Donation with Receipt RCPT-000001-DEMO and a Ledger Entry.
-
-* `mock_payment_provider.py`
-  - What it does: The Gateway Simulator. Pretends to be Paystack or Flutterwave. 
-    It creates real cryptographic HMAC-SHA256 signatures, fires webhooks at 
-    our server, and tests duplicate events to prove our idempotency works.
-
-* `document.txt`
-  - The document you are reading right now!
+3. DONOR ACCOUNT (Role: donor)
+   Email:    donor@example.com
+   Password: Donor123!
+   Power:    Can submit pledges, view personal donations, download receipts.
 
 --------------------------------------------------------------------------------
-5.2 app/core/ (The Security Guards & Infrastructure)
+B. How to Authenticate in Swagger Step-by-Step
 --------------------------------------------------------------------------------
+Follow these 4 simple steps to unlock protected endpoints in Swagger:
 
-* `app/core/config.py`
-  - Purpose: Loads all settings from `.env`.
-  - Imports: `pydantic_settings.BaseSettings`.
-  - How it works: Reads `DATABASE_URL` (pointing to port 5433), `REDIS_URL`, and 
-    `JWT_SECRET`. Creates a single `settings` object.
-  - Exported to: Almost all files import `from app.core.config import settings`.
-
-* `app/core/security.py`
-  - Purpose: Cryptography powerhouse.
-  - Functions inside:
-    1. `hash_password(password)`: Uses `bcrypt.hashpw` with a random salt to 
-       scramble passwords before saving them in the database.
-    2. `verify_password(plain, hashed)`: Compares a typed password against the 
-       scrambled hash. Returns True or False.
-    3. `create_access_token(data)`: Generates a JWT string encoded with the 
-       user's ID, role, and a 60-minute expiration countdown.
-    4. `decode_access_token(token)`: Unpacks the token, verifies the secret 
-       signature, and checks if it expired.
-    5. `verify_webhook_signature(raw_body, signature)`: Computes HMAC-SHA256 
-       using the secret key and compares it to the incoming `X-Signature` header 
-       using `hmac.compare_digest` (constant time comparison, preventing timing 
-       attacks).
-
-* `app/core/deps.py`
-  - Purpose: Dependency Injection & Role-Based Access Control (RBAC).
-  - How it works:
-    - `get_current_user`: Looks at the HTTP request header `Authorization: Bearer <token>`, 
-      decodes it using `security.py`, and looks up the user in the database.
-    - `require_admin`: Rejects anyone who is not an Admin with HTTP 403 Forbidden.
-    - `require_finance`: Allows Finance Officers and Admins.
-    - `require_donor`: Allows Donors.
-
-* `app/core/errors.py`
-  - Purpose: Uniform error envelope.
-  - How it works: Defines `AppException(status_code, code, message)`. If anything 
-    goes wrong anywhere in the system, it formats the error into this clean shape:
-    ```json
-    {
-      "error": {
-        "code": "DUPLICATE_BANK_REFERENCE",
-        "message": "Bank reference 'TXN-001' has already been recorded.",
-        "request_id": "c7a14e6b-..."
+Step 1: Get Your Token via /auth/login
+   1. Expand the "Authentication" tag in Swagger.
+   2. Click on `POST /api/v1/auth/login`.
+   3. Click the white "Try it out" button on the right.
+   4. In the Request body box, fill in the credentials (for example, Admin):
+      {
+        "email": "admin@givenaija.org",
+        "password": "Admin123!"
       }
-    }
-    ```
+   5. Click the blue "Execute" button.
+   6. Look at the Server response (HTTP 200). You will see:
+      {
+        "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+        "token_type": "bearer",
+        "user": { ... }
+      }
+   7. Highlight and copy ONLY the token text inside the quotation marks 
+      (the string starting with "ey...").
 
-* `app/core/middleware.py`
-  - Purpose: Wraps around every single HTTP request entering the server.
-  - Two Middlewares inside:
-    1. `RequestLoggingAndTimingMiddleware`: Generates a random `X-Request-ID` UUID 
-       so every log line can be traced. Measures how many milliseconds the server 
-       took and writes it to `X-Process-Time`.
-    2. `RateLimiterMiddleware`: Guards the login door (`POST /auth/login`). If someone 
-       tries to guess passwords more than 5 times in 60 seconds from the same IP, 
-       it blocks them with `HTTP 429 Too Many Requests` and a `Retry-After: 60` header!
+Step 2: Open the Authorize Modal
+   1. Scroll up to the top right of the Swagger page.
+   2. Click the green "Authorize" button (with the open padlock icon).
 
-* `app/core/broadcaster.py`
-  - Purpose: The Real-Time Event Station for Server-Sent Events (SSE).
-  - How it works: Maintains an `asyncio.Queue` for every campaign. When a client 
-    opens the live dashboard at `GET /campaigns/{id}/stream`, they get plugged in. 
-    When money arrives, `broadcast_donation_event()` shouts to all queues, and 
-    the browser immediately sees the update!
+Step 3: Paste and Authorize
+   1. In the "Value" text field under `HTTPBearer (http, Bearer)`, paste the 
+      token you copied.
+      Note: You can paste just the raw token string (e.g. `eyJ...`). Swagger UI 
+      automatically prefixes it with `Bearer `.
+   2. Click the "Authorize" button inside the modal, then click "Close".
 
-* `app/core/idempotency.py`
-  - Purpose: Safe retries for payment requests.
-  - How it works: Looks up the `Idempotency-Key` header in the `idempotency_keys` 
-    table. If seen before, it returns the saved JSON response immediately without 
-    running the code again.
-
---------------------------------------------------------------------------------
-5.3 app/db/ (The Memory & Storage Room)
---------------------------------------------------------------------------------
-
-* `app/db/session.py`
-  - Purpose: Creates the database engine and provides sessions.
-  - How it works: Creates `engine = create_engine(settings.DATABASE_URL)`. 
-    Defines `get_db()` which gives each HTTP request its own fresh session and 
-    closes it when the request finishes.
-
-* `app/db/base.py`
-  - Purpose: The Master Model Registry for Alembic.
-  - How it works: Imports all models (`auth`, `campaigns`, `donations`, `audit`, 
-    `webhooks`, `ledger`). When Alembic inspects `SQLModel.metadata`, it sees all 
-    tables in one place.
-
-* `app/db/migrations.py`
-  - Purpose: Programmatic migration runner.
-  - How it works: Calls `alembic.command.upgrade(cfg, "head")` automatically 
-    when `app/main.py` starts up.
-
-* `app/db/redis.py`
-  - Purpose: Redis cache manager.
-  - Functions: `get_cache(key)`, `set_cache(key, value, ttl)`, and 
-    `invalidate_cache(pattern)` (which purges keys matching `cache:campaigns:*`).
-
-* `app/db/firestore.py`
-  - Purpose: Syncs donations to Google Cloud Firestore feed. Gracefully logs a 
-    notice and continues if running in offline development.
+Step 4: Verify Authorization
+   - Notice that the padlock icon on the green button is now LOCKED!
+   - Every endpoint with a lock icon next to its name will now automatically 
+     include your Bearer token in its HTTP request header!
 
 --------------------------------------------------------------------------------
-5.4 app/domains/ (The 6 Feature Rooms)
+C. Role-Based Access Control (RBAC): 401 vs 403 in Swagger
 --------------------------------------------------------------------------------
-
-Each domain is a self-contained mini-application following the Router -> Service -> Model rule:
-
-### ROOM 1: `auth` (Users & Members)
-* `models.py`:
-  - `User`: Table `users` (id, email UNIQUE, password_hash, role, is_active).
-  - `Member`: Table `members` (id, user_id UNIQUE foreign key to users.id, phone, 
-    member_code UNIQUE).
-* `schemas.py`: Pydantic shapes for `RegisterRequest`, `LoginRequest`, `TokenResponse`.
-* `service.py`:
-  - `register_user()`: Starts a transaction. Inserts User. If role is DONOR, 
-    inserts Member profile. Inserts an AuditLog row. Calls `session.commit()`.
-  - `authenticate_user()`: Checks email & bcrypt password. Emits signed JWT token.
-* `router.py`:
-  - `POST /api/v1/auth/register` (201 Created)
-  - `POST /api/v1/auth/login` (200 OK with Bearer token)
-
-### ROOM 2: `campaigns` (Fundraising & Live Feeds)
-* `models.py`:
-  - `Campaign`: Table `campaigns` (id, title, goal_amount in kobo, raised_amount in kobo, 
-    status: "open" or "closed").
-* `schemas.py`: `CampaignCreate`, `CampaignResponse`.
-* `service.py`:
-  - `list_campaigns()`: Checks Redis first! If missing, loads from PostgreSQL, 
-    caches in Redis for 60 seconds, and returns.
-  - `create_campaign()`: Admin-only. Inserts new campaign, writes audit log, 
-    commits, and invalidates Redis cache.
-  - `close_campaign()`: Marks campaign as "closed". No further donations accepted!
-* `router.py`:
-  - `GET /api/v1/campaigns`
-  - `POST /api/v1/campaigns` (Admin only)
-  - `POST /api/v1/campaigns/{id}/close` (Admin only)
-  - `GET /api/v1/campaigns/{id}/stream` (SSE live donation stream)
-
-### ROOM 3: `donations` (Donation Recording & Receipts)
-* `models.py`:
-  - `Donation`: Table `donations` (id, campaign_id FK, amount in kobo, bank_ref UNIQUE, 
-    recorded_by FK, at timestamp).
-  - `Receipt`: Table `receipts` (id, donation_id UNIQUE FK, number UNIQUE e.g. "RCPT-000001", 
-    issued_at).
-  - `Pledge`: Table `pledges` (id, campaign_id FK, donor_id FK, amount, status).
-  - `IdempotencyRecord`: Table `idempotency_keys` (key UNIQUE, endpoint, response_json).
-* `schemas.py`: `DonationCreate`, `PledgeCreate`, `ReceiptResponse`, `StatementReportResponse`.
-* `service.py`:
-  - `record_donation()`: The core transaction engine!
-    1. Checks if campaign is open (if closed, raises 409).
-    2. Checks idempotency key (if retry, returns saved response).
-    3. Checks if `bank_ref` already exists (raises 409).
-    4. ATOMIC TRANSACTION:
-       - Inserts Donation row.
-       - Increments `campaign.raised_amount += amount`.
-       - Inserts immutable LedgerEntry (credit).
-       - Inserts AuditLog row.
-       - Saves IdempotencyRecord.
-       - `session.commit()`.
-    5. Invalidate Redis campaign cache.
-    6. Broadcasts real-time event to SSE broadcaster!
-* `router.py`:
-  - `POST /api/v1/donations` (Finance or Admin only)
-  - `POST /api/v1/pledges` (Donor pledges future money)
-  - `GET /api/v1/donations/me` (Donor views personal donations)
-  - `GET /api/v1/receipts/{id}` (View permanent receipt)
-  - `GET /api/v1/reports/statement` (Finance exports accounting report)
-
-### ROOM 4: `donations/ledger/` (Double-Entry Financial Accounting)
-* `models.py`:
-  - `LedgerEntry`: Table `ledger_entries` (id, donation_id UNIQUE FK, campaign_id FK, 
-    entry_type: "credit"|"debit"|"refund", amount_ngn: Decimal(15,2), description, recorded_at).
-* `service.py`:
-  - `create_ledger_entry()`: Called by `record_donation()` inside the same transaction.
-  - `get_campaign_ledger()`: Returns full accounting credit/debit history.
-  - `get_donor_ledger()`: Queries personal payments by joining Member and Donation.
-  - `get_total_credited()`: Sums all CREDIT amounts for a campaign.
-* `router.py`:
-  - `GET /api/v1/ledger/campaign/{id}` (Finance view)
-  - `GET /api/v1/ledger/me` (Donor view)
-  - `GET /api/v1/ledger/campaign/{id}/verify` (Admin Reconciliation Check):
-    Sums all ledger CREDIT entries and compares against `campaign.raised_amount`. 
-    Returns `match: true` and `status: "OK"` if balanced!
-
-### ROOM 5: `audit` (The Indelible Diary)
-* `models.py`:
-  - `AuditLog`: Table `audit_log` (id, actor_id FK nullable, action, target_type, 
-    target_id, details, at timestamp).
-* `service.py`:
-  - `list_logs()`: Paginated log viewer for administrators.
-  - `enforce_append_only_rules(engine)`:
-    - On PostgreSQL: Runs SQL DDL creating stored function 
-      `prevent_audit_log_modifications()` and trigger `trg_audit_log_append_only`.
-      Any query attempting `UPDATE audit_log` or `DELETE FROM audit_log` is aborted!
-    - On SQLite: Creates two triggers raising `RAISE(ABORT, 'Audit log is append-only')`.
-* `router.py`:
-  - `GET /api/v1/admin/audit-log` (Admin only)
-
-### ROOM 6: `webhooks` (The Payment Gateway Delivery Guy)
-* `models.py`:
-  - `ProcessedEvent`: Table `processed_events` (id, event_id UNIQUE, reference, is_orphan).
-* `service.py`:
-  - `process_payment()`:
-    1. Verifies HMAC-SHA256 signature using secret key.
-    2. Checks `processed_events` table for `event_id`. If duplicate, returns 200 OK immediately.
-    3. Looks up referenced campaign. If campaign doesn't exist, records event with 
-       `is_orphan=True`, writes an audit log, and returns 200 OK so the gateway stops 
-       spamming, while alerting finance of unlinked funds.
-    4. If valid, executes atomic donation recording, ledger credit, audit log, 
-       updates campaign, and broadcasts SSE.
-* `router.py`:
-  - `POST /api/v1/webhooks/payment`
-
---------------------------------------------------------------------------------
-5.5 app/api.py & app/main.py (The Grand Aggregators)
---------------------------------------------------------------------------------
-
-* `app/api.py`:
-  - The Central Hub. Imports the 6 domain routers and merges them into one 
-    big `api_router`:
-    ```python
-    api_router.include_router(auth_router)
-    api_router.include_router(campaigns_router)
-    api_router.include_router(donations_router)
-    api_router.include_router(ledger_router)
-    api_router.include_router(audit_router)
-    api_router.include_router(webhooks_router)
-    ```
-
-* `app/main.py`:
-  - The Application Entrypoint.
-  - Sets up `@asynccontextmanager def lifespan(app)`:
-    - Runs on startup: initializes tables (`init_db()`), installs database triggers 
-      (`enforce_append_only_rules()`), and applies migrations (`run_migrations()`).
-  - Adds CORS middleware (allowing frontend web apps to connect).
-  - Adds Logging & Timing Middleware.
-  - Adds Rate Limiting Middleware.
-  - Mounts `api_router` under `/api/v1`.
-  - Defines `GET /health` (returns status: "healthy").
-  - Redirects root `GET /` directly to the interactive `/docs` Swagger page.
-
---------------------------------------------------------------------------------
-5.6 tests/ (The 31-Test Inspection Squad)
---------------------------------------------------------------------------------
-
-* `conftest.py`:
-  - Sets `APP_ENV = "testing"`.
-  - Creates an ultra-fast, isolated in-memory SQLite database (`sqlite:///:memory:`).
-  - Sets up database triggers and seeds demo users (Admin, Finance, Donor) for every test.
-* `test_hard_problem.py` (5 Tests):
-  - Proves double-counting is impossible.
-  - Proves concurrent race conditions fail safely with 409.
-  - Proves every action creates an audit row.
-  - Proves database blocks SQL UPDATE/DELETE on audit logs.
-  - Proves receipt generation is idempotent.
-* `test_auth_and_access.py` (7 Tests):
-  - Tests 401 Unauthorized, 403 Forbidden, member creation, duplicate email rejection, 
-    JWT tokens, and 429 rate limiting.
-* `test_donations_and_campaigns.py` (9 Tests):
-  - Tests bank reference uniqueness, idempotency keys, closed campaign rejection, 
-    pledges, and statements.
-* `test_ledger.py` (5 Tests):
-  - Tests finance ledger queries, donor personal history, automatic ledger row 
-    creation, and admin reconciliation match.
-* `test_webhooks_and_stream.py` (5 Tests):
-  - Tests HMAC signature verification, duplicate webhook deduplication, bad signature 
-    rejection, orphan event logging, and live SSE event broadcasting.
+GiveNaija strictly enforces two levels of security:
+- HTTP 401 UNAUTHORIZED:
+  Triggered when you try to call a locked endpoint without clicking Authorize, 
+  or if your token has expired.
+  Message: "Authentication required. Missing Bearer token."
+- HTTP 403 FORBIDDEN:
+  Triggered when you ARE logged in, but your role does not have permission.
+  For example, if you log in as `donor@example.com` and attempt to call 
+  `POST /api/v1/campaigns` (which requires `admin`), the server returns 403.
+  Message: "Access forbidden. Requires one of roles: admin"
 
 ================================================================================
-6. THE JOURNEY OF 10,000 NAIRA (STEP-BY-STEP FLOW)
+5. MASTER ENDPOINT-BY-ENDPOINT GUIDE (ALL 16 ENDPOINTS EXPLAINED)
 ================================================================================
 
-Here is the exact movie of what happens inside the computer when an officer 
-records a 10,000 Naira donation:
+Here is the exhaustive, endpoint-by-endpoint breakdown of every route exposed in 
+GiveNaija's Swagger documentation:
 
-Step 1: The Request Arrives
-  The finance officer sends `POST /api/v1/donations` with JSON:
-  `{"campaign_id": 1, "amount": 1000000, "bank_ref": "TXN-777"}`
-  along with their Bearer JWT token in the header.
+--------------------------------------------------------------------------------
+TAG 1: HEALTH
+--------------------------------------------------------------------------------
 
-Step 2: Security & Identity Check (deps.py)
-  `deps.py` unpacks the token. Checks the signature. Confirms the user is 
-  Finance Officer Victor.
+1. GET /health
+   - Summary: Health check endpoint for orchestrators and monitoring probes.
+   - Purpose: Allows Docker, Kubernetes, AWS, or uptime monitors to verify that 
+     the FastAPI server is alive and responding.
+   - Permission: Public (No login needed).
+   - Parameters: None.
+   - How to test in Swagger:
+     Click "Try it out" -> Click "Execute".
+   - Expected Response (HTTP 200 OK):
+     {
+       "status": "healthy",
+       "app": "GiveNaija API",
+       "environment": "development"
+     }
 
-Step 3: Idempotency Check (idempotency.py)
-  Checks if `Idempotency-Key` was sent. If yes, checks table. If already processed, 
-  returns the previous response immediately.
+--------------------------------------------------------------------------------
+TAG 2: AUTHENTICATION (/api/v1/auth)
+--------------------------------------------------------------------------------
 
-Step 4: Business Rules (service.py)
-  Queries Campaign #1. Is it open? Yes. 
-  Has "TXN-777" been recorded before? No.
+2. POST /api/v1/auth/register
+   - Summary: Register a new user account.
+   - Purpose: Creates a brand-new user. If the role chosen is `donor` (the default), 
+     the system automatically creates an associated `Member` profile with an 
+     NGO membership number.
+   - Permission: Public.
+   - Request Body (`RegisterRequest`):
+     {
+       "email": "newdonor@example.com",
+       "password": "SecurePassword123!",
+       "role": "donor",
+       "phone": "+2348012345678"
+     }
+   - How to test in Swagger:
+     Click "Try it out" -> Paste JSON -> Click "Execute".
+   - Expected Response (HTTP 201 Created):
+     {
+       "id": 4,
+       "email": "newdonor@example.com",
+       "role": "donor",
+       "is_active": true,
+       "created_at": "2026-09-22T12:00:00Z"
+     }
+   - Potential Errors:
+     * HTTP 400 Bad Request: If email is already registered.
+     * HTTP 422 Unprocessable Entity: If password is under 8 characters or email 
+       is invalid.
 
-Step 5: The Atomic Transaction (All or Nothing)
-  Inside a single database transaction:
-  A. Inserts a row into `donations` (amount=1000000, bank_ref="TXN-777").
-  B. Updates `campaigns` raised_amount from 50,000 to 60,000.
-  C. Inserts a row into `ledger_entries` (type=CREDIT, amount_ngn=10000.00).
-  D. Inserts a row into `audit_log` (actor="Victor", action="RECORD_DONATION").
-  E. Calls `session.commit()`.
+3. POST /api/v1/auth/login
+   - Summary: Authenticate and receive JWT token.
+   - Purpose: Verifies email and bcrypt password hash. Returns a signed JWT token 
+     containing `user_id` and `role`.
+   - Permission: Public.
+   - Rate Limit: 5 attempts per minute per IP (prevents brute-force attacks).
+   - Request Body (`LoginRequest`):
+     {
+       "email": "admin@givenaija.org",
+       "password": "Admin123!"
+     }
+   - Expected Response (HTTP 200 OK):
+     {
+       "access_token": "eyJhbGciOiJIUzI1...",
+       "token_type": "bearer",
+       "user": {
+         "id": 1,
+         "email": "admin@givenaija.org",
+         "role": "admin",
+         "is_active": true,
+         "created_at": "..."
+       }
+     }
+   - Potential Errors:
+     * HTTP 401 Unauthorized: Invalid email or password.
+     * HTTP 429 Too Many Requests: Exceeded 5 login attempts within 60 seconds.
 
-Step 6: Real-Time Broadcast & Cache Busting
-  - Clears Redis key `cache:campaigns:*` so future visitors see the new 60,000 total.
-  - Sends a signal to `broadcaster.py`, which pushes an SSE event down the wire to 
-    all open donor dashboards.
-  - Returns `HTTP 201 Created` with the new donation details!
+--------------------------------------------------------------------------------
+TAG 3: CAMPAIGNS (/api/v1/campaigns)
+--------------------------------------------------------------------------------
+
+4. GET /api/v1/campaigns
+   - Summary: List fundraising campaigns (Cached).
+   - Purpose: Returns all fundraising causes. Uses Redis caching with a 60-second 
+     TTL. The response object contains `"cached": true` if served from Redis memory!
+   - Permission: Public.
+   - Query Parameters:
+     * `status`: Optional filter ("open" or "closed").
+     * `limit`: Items per page (default: 20, max: 100).
+     * `offset`: Pagination offset (default: 0).
+   - Expected Response (HTTP 200 OK):
+     {
+       "items": [
+         {
+           "id": 1,
+           "title": "Clean Water for Enugu Rural Communities",
+           "description": "Drilling solar-powered boreholes...",
+           "goal_amount": 500000000,
+           "raised_amount": 5000000,
+           "status": "open",
+           "created_at": "...",
+           "updated_at": "..."
+         }
+       ],
+       "total": 1,
+       "limit": 20,
+       "offset": 0,
+       "cached": false
+     }
+   - Pro Tip: Execute this endpoint twice in Swagger. The first time `cached` is 
+     `false`. The second time `cached` becomes `true` because Redis served it!
+
+5. POST /api/v1/campaigns
+   - Summary: Create a new fundraising campaign.
+   - Purpose: Allows NGO administrators to launch a new fundraising drive.
+   - Permission: ADMIN ONLY (Requires Bearer token with role `admin`).
+   - Cache Invalidation: Immediately clears Redis cache `cache:campaigns:*` so 
+     visitors see the new campaign right away.
+   - Audit Trail: Writes an immutable record to `audit_log` with action 
+     `CAMPAIGN_CREATED`.
+   - Request Body (`CampaignCreate`):
+     {
+       "title": "Lagos Orphanage Back-to-School Books",
+       "description": "Purchasing 2,000 science and math textbooks.",
+       "goal_amount": 200000000
+     }
+     * Note: `goal_amount` is in kobo (200,000,000 kobo = 2,000,000 NGN).
+   - Expected Response (HTTP 201 Created):
+     Returns full `CampaignResponse` object with `id`, `status: "open"`, and 
+     `raised_amount: 0`.
+   - Potential Errors:
+     * HTTP 401 Unauthorized: If no token provided.
+     * HTTP 403 Forbidden: If caller is a `donor` or `finance` officer.
+
+6. POST /api/v1/campaigns/{id}/close
+   - Summary: Close an existing fundraising campaign.
+   - Purpose: Marks a campaign as `closed`. Once closed, no further donations or 
+     pledges can ever be recorded against it.
+   - Permission: ADMIN ONLY.
+   - Path Parameter:
+     * `id`: Integer campaign ID (e.g. `1`).
+   - Expected Response (HTTP 200 OK):
+     Returns the campaign object with `status: "closed"`.
+   - Potential Errors:
+     * HTTP 404 Not Found: If campaign ID does not exist.
+     * HTTP 400 Bad Request: If campaign was already closed.
+
+7. GET /api/v1/campaigns/{id}/stream
+   - Summary: Live Server-Sent Events (SSE) donation stream.
+   - Purpose: Opens a continuous HTTP connection (`text/event-stream`). Whenever 
+     a donation is made anywhere in the world to this campaign, the server pushes 
+     a live JSON event down the wire instantly without polling the database!
+   - Features: Emits a `: heartbeat\n\n` comment every 15 seconds to keep firewalls 
+     and reverse proxies from disconnecting.
+   - Permission: Public.
+   - Path Parameter:
+     * `id`: Campaign ID.
+   - Note for Swagger: Swagger UI attempts to stream the response. For the best 
+     experience, open `http://127.0.0.1:8000/api/v1/campaigns/1/stream` directly 
+     in a browser tab!
+
+--------------------------------------------------------------------------------
+TAG 4: DONATIONS & PLEDGES (/api/v1)
+--------------------------------------------------------------------------------
+
+8. POST /api/v1/donations
+   - Summary: Record a confirmed bank transfer as a donation (Idempotent).
+   - Purpose: When a donor pays by direct bank deposit or wire transfer, a finance 
+     officer logs the bank confirmation reference here.
+   - Permission: FINANCE or ADMIN.
+   - Hard Problem Armor:
+     * Database UNIQUE constraint on `bank_ref`.
+     * Idempotency-Key support in HTTP headers.
+     * Atomic transaction: Inserts donation + updates campaign raised_amount + 
+       adds ledger CREDIT + records audit log.
+   - Request Header:
+     * `Idempotency-Key`: Optional string/UUID (e.g. `idem-tx-99901`).
+   - Request Body (`DonationCreate`):
+     {
+       "campaign_id": 1,
+       "amount": 2500000,
+       "bank_ref": "TXN-GTB-20260922-888",
+       "member_id": 1
+     }
+     * Note: `amount` is in kobo (2,500,000 kobo = 25,000 NGN).
+   - Expected Response (HTTP 201 Created):
+     {
+       "id": 2,
+       "campaign_id": 1,
+       "member_id": 1,
+       "amount": 2500000,
+       "bank_ref": "TXN-GTB-20260922-888",
+       "recorded_by": 2,
+       "at": "2026-09-22T12:30:00Z"
+     }
+   - Testing Idempotency in Swagger:
+     1. Supply `Idempotency-Key: test-uuid-001` in the header field.
+     2. Click "Execute" -> Returns HTTP 201 Created.
+     3. Click "Execute" AGAIN immediately with the SAME key and body!
+     4. Result: Returns HTTP 200 OK with the IDENTICAL response payload! 
+        No duplicate donation is recorded, and the campaign balance is not touched!
+   - Testing Duplicate Bank Reference:
+     Change the `Idempotency-Key` but keep the same `bank_ref`.
+     Result: Returns HTTP 409 Conflict with code `DUPLICATE_BANK_REFERENCE`.
+
+9. POST /api/v1/pledges
+   - Summary: Pledge an amount to a campaign.
+   - Purpose: Donors declare their intent to contribute funds in the future.
+   - Permission: DONOR, FINANCE, or ADMIN.
+   - Request Body (`PledgeCreate`):
+     {
+       "campaign_id": 1,
+       "amount": 5000000
+     }
+   - Expected Response (HTTP 201 Created):
+     {
+       "id": 1,
+       "member_id": 1,
+       "campaign_id": 1,
+       "amount": 5000000,
+       "status": "pending",
+       "created_at": "..."
+     }
+
+10. GET /api/v1/donations/me
+    - Summary: List donations for current donor.
+    - Purpose: Allows a logged-in donor to view their personal giving history.
+    - Permission: Authenticated donor.
+    - Parameters: `limit` (default: 20), `offset` (default: 0).
+    - Expected Response (HTTP 200 OK):
+      Returns a paginated `DonationListResponse` containing only donations tied 
+      to the authenticated caller's member account.
+
+11. GET /api/v1/receipts/{donation_id}
+    - Summary: Get numbered receipt for a donation.
+    - Purpose: Generates or retrieves the single, official, permanent tax receipt 
+      for a confirmed donation (e.g. `REC-2026-000001`).
+    - Guarantee: Idempotent receipt numbers. Calling this 100 times returns the 
+      exact same receipt number every time.
+    - Permission: Any authenticated user (Donors can only view their own receipts; 
+      Staff can view any).
+    - Path Parameter:
+      * `donation_id`: Integer ID of the donation.
+    - Expected Response (HTTP 200 OK):
+      {
+        "id": 1,
+        "donation_id": 1,
+        "number": "REC-2026-000001",
+        "amount": 5000000,
+        "bank_ref": "TXN-GTB-SEED-001",
+        "campaign_id": 1,
+        "issued_at": "..."
+      }
+
+12. GET /api/v1/reports/statement
+    - Summary: Export donation statement for auditing.
+    - Purpose: Generates an auditable financial statement of all donations within 
+      a specified date range for accountants and bank reconciliations.
+    - Permission: FINANCE or ADMIN.
+    - Query Parameters:
+      * `from`: ISO datetime string (e.g. `2026-01-01T00:00:00Z`).
+      * `to`: ISO datetime string (e.g. `2026-12-31T23:59:59Z`).
+    - Expected Response (HTTP 200 OK):
+      {
+        "period_from": "2026-01-01T00:00:00Z",
+        "period_to": "2026-12-31T23:59:59Z",
+        "total_donations": 1,
+        "total_amount": 5000000,
+        "items": [ ... ]
+      }
+
+--------------------------------------------------------------------------------
+TAG 5: LEDGER (/api/v1/ledger)
+--------------------------------------------------------------------------------
+
+13. GET /api/v1/ledger/campaign/{campaign_id}
+    - Summary: Campaign ledger (Finance / Admin).
+    - Purpose: Returns the chronological double-entry accounting ledger entries 
+      for a campaign (CREDIT entries representing money in).
+    - Permission: FINANCE or ADMIN.
+    - Query Parameters: `limit` (default: 100, max: 500), `offset` (default: 0).
+    - Expected Response (HTTP 200 OK):
+      {
+        "campaign_id": 1,
+        "count": 1,
+        "entries": [
+          {
+            "id": 1,
+            "donation_id": 1,
+            "campaign_id": 1,
+            "entry_type": "CREDIT",
+            "amount_ngn": "50000.00",
+            "description": "Donation ref TXN-GTB-SEED-001 (5000000 kobo)",
+            "recorded_at": "..."
+          }
+        ]
+      }
+
+14. GET /api/v1/ledger/me
+    - Summary: My payment ledger (Donor).
+    - Purpose: Returns the authenticated donor's personal ledger history directly 
+      from the financial accounting books.
+    - Permission: DONOR, FINANCE, or ADMIN.
+    - Expected Response (HTTP 200 OK):
+      Returns list of credit entries tied to the calling donor's member profile.
+
+15. GET /api/v1/ledger/campaign/{campaign_id}/verify
+    - Summary: Verify ledger vs campaign raised_amount (Admin).
+    - Purpose: Automated reconciliation endpoint! It sums every single immutable 
+      CREDIT row in the ledger and compares it directly against the campaign's 
+      `raised_amount` counter.
+    - Permission: ADMIN ONLY.
+    - Expected Response (HTTP 200 OK):
+      {
+        "campaign_id": 1,
+        "ledger_total_ngn": "50000.00",
+        "campaign_raised_amount_ngn": "50000.00",
+        "match": true,
+        "status": "OK"
+      }
+    - Why this impresses examiners: It mathematically proves that balance-sheet 
+      numbers cannot drift away from real accounting transaction rows.
+
+--------------------------------------------------------------------------------
+TAG 6: AUDIT LOG & ADMINISTRATION (/api/v1/admin)
+--------------------------------------------------------------------------------
+
+16. GET /api/v1/admin/audit-log
+    - Summary: Inspect immutable audit log (Admin only).
+    - Purpose: Read-only inspection of the tamper-proof security log. Every action 
+      (login, campaign creation, campaign closing, donation recording) is stamped 
+      here with actor ID, target entity, timestamp, and details.
+    - Permission: ADMIN ONLY.
+    - Database Protection: Enforced by PostgreSQL triggers that physically block 
+      UPDATE and DELETE commands.
+    - Query Parameters:
+      * `limit`: Default 20, max 100.
+      * `offset`: Default 0.
+      * `actor`: Optional user ID filter.
+    - Expected Response (HTTP 200 OK):
+      {
+        "items": [
+          {
+            "id": 1,
+            "actor_id": 1,
+            "action": "SEED_USER_CREATED",
+            "target_type": "users",
+            "target_id": 1,
+            "details": "Seeded Admin account",
+            "at": "..."
+          }
+        ],
+        "total": 4,
+        "limit": 20,
+        "offset": 0
+      }
+
+--------------------------------------------------------------------------------
+TAG 7: PAYMENT WEBHOOK (/api/v1/webhooks)
+--------------------------------------------------------------------------------
+
+17. POST /api/v1/webhooks/payment
+    - Summary: Receive payment provider signed webhook.
+    - Purpose: The HTTP listener that payment gateways (Paystack, Flutterwave, 
+      Stripe) call when a donor completes an online debit card payment.
+    - Permission: Public HTTP endpoint, BUT protected by HMAC-SHA256 signature!
+    - Security Header:
+      * `X-Signature`: Hex-encoded HMAC-SHA256 signature calculated over the raw 
+        request body using the shared `WEBHOOK_SECRET`.
+    - Request Body (`PaymentWebhookPayload`):
+      {
+        "event_id": "evt_987654321",
+        "type": "payment.succeeded",
+        "reference": "BOOK-123",
+        "amount": 45000,
+        "currency": "NGN",
+        "paid_at": "2026-09-22T12:00:00Z"
+      }
+    - Expected Response (HTTP 200 OK):
+      {
+        "received": true,
+        "event_id": "evt_987654321",
+        "status": "processed"
+      }
+    - Potential Errors:
+      * HTTP 401 Unauthorized: If `X-Signature` is missing or does not match 
+        the HMAC-SHA256 calculation.
+      * HTTP 422 Unprocessable Entity: Malformed JSON.
 
 ================================================================================
-7. PRESENTATION & DEFENSE CHEAT SHEET (QUESTIONS & WINNING ANSWERS)
+6. CRITICAL REQUEST HEADERS DEMYSTIFIED
 ================================================================================
 
-Memorize these 6 simple answers for your project defense:
+When using Swagger UI, you will notice special headers in certain endpoints. 
+Here is what they do:
 
-Q1: "Why did you use database triggers for the audit log instead of just writing 
-     it in Python?"
-A1: "Because if we only write the rule in Python, anyone with direct access to the 
-     database (like a rogue DBA, a hacker, or a corrupted script) could run 
-     'DELETE FROM audit_log'. By putting triggers inside PostgreSQL, the database 
-     engine itself refuses to delete or edit records, no matter who sends the command!"
+1. `Authorization: Bearer <token>`
+   - Handled automatically by Swagger once you click the green "Authorize" button.
+   - Encodes the user's identity, role, and expiration timestamp.
 
-Q2: "What happens if two officers record the same bank reference at the exact same 
-     second?"
-A2: "Our 'donations' table has a database-level UNIQUE constraint on 'bank_ref'. 
-     PostgreSQL's ACID transaction lock ensures only one officer commits. The second 
-     officer immediately triggers an IntegrityError, which our service catches and 
-     returns as a clean HTTP 409 Conflict with the code 'DUPLICATE_BANK_REFERENCE'."
+2. `Idempotency-Key: <string>`
+   - Found on `POST /api/v1/donations`.
+   - Protects against network dropouts. If a mobile app or browser retries a 
+     donation request due to a transient WiFi glitch, the server checks the 
+     `idempotency_keys` table. If the key was already executed, the server 
+     returns the cached HTTP 200 response without charging or recording again!
 
-Q3: "What is an Idempotency Key and why do you need it?"
-A3: "It protects against network dropouts. If a mobile app donates 10,000 Naira and 
-     the internet cuts out right as the server finishes processing, the app retries. 
-     Our server recognizes the Idempotency-Key, looks up the cached result, and returns 
-     the original HTTP 200 response without charging or recording the money twice!"
+3. `X-Signature: <hex_string>`
+   - Found on `POST /api/v1/webhooks/payment`.
+   - Computed as: `HMAC_SHA256(secret=WEBHOOK_SECRET, message=raw_json_body)`.
+   - Ensures attackers cannot spoof fake payment confirmations.
 
-Q4: "Why did you choose Server-Sent Events (SSE) instead of WebSockets?"
-A4: "Donation tickers are one-way: the server announces donations to donor screens, 
-     but donors don't need to send messages back over that stream. SSE runs on standard 
-     HTTP, bypasses corporate firewalls easily, has built-in auto-reconnection in 
-     web browsers, and uses 10x less server memory than WebSockets."
-
-Q5: "How do you prove that your campaign balances match actual financial records?"
-A5: "We built an automated reconciliation endpoint at GET /ledger/campaign/{id}/verify. 
-     It calculates the exact sum of all immutable CREDIT rows in the ledger and compares 
-     it with the campaign's raised_amount counter. If they match, it returns 'match: true' 
-     and status 'OK'."
-
-Q6: "Why is your PostgreSQL Docker port set to 5433 instead of 5432?"
-A6: "The host development machine already had a native PostgreSQL service running on 
-     port 5432. To prevent port collisions and authentication errors, we mapped Docker's 
-     external port to 5433 while keeping internal PostgreSQL on 5432. The app points 
-     cleanly to port 5433."
+4. `X-Request-ID: <uuid>`
+   - Injected by our custom `RequestLoggingAndTimingMiddleware`.
+   - Attached to every incoming HTTP request and mirrored in response headers.
+   - If an error occurs, the request ID is included in the error JSON payload, 
+     allowing engineers to correlate frontend errors with backend server logs.
 
 ================================================================================
-                         END OF STUDY GUIDE
-     You are 100% prepared. Go in there and deliver an amazing defense!
+7. ERROR HANDLING & THE UNIFORM ERROR SHAPE
+================================================================================
+
+A hallmark of senior backend engineering is consistent error structures. 
+In GiveNaija, EVERY error response follows an identical JSON contract:
+
+```json
+{
+  "error": {
+    "code": "DUPLICATE_BANK_REFERENCE",
+    "message": "Bank reference 'TXN-GTB-20260922-888' has already been recorded.",
+    "request_id": "93b48227-d0d1-4cb5-824c-12fa89b25123"
+  }
+}
+```
+
+Key HTTP Status Codes to Know for Your Defense:
+- 200 OK: Successful query or idempotent replay.
+- 201 Created: New resource created (donation, campaign, user, pledge).
+- 400 Bad Request: Business rule violation (e.g. campaign is closed).
+- 401 Unauthorized: Missing or invalid credentials / Bearer token.
+- 403 Forbidden: Authenticated user lacks required role permissions.
+- 404 Not Found: Resource ID does not exist.
+- 409 Conflict: Unique constraint violation (duplicate bank reference).
+- 422 Unprocessable Entity: Pydantic validation failed (invalid email format, etc.).
+- 429 Too Many Requests: Rate limiter triggered (e.g. >5 logins/minute).
+
+================================================================================
+8. THE SCHEMAS SECTION: PYDANTIC DATA MODELS & VALIDATION
+================================================================================
+
+At the bottom of the Swagger UI (`/docs`), you will find the "Schemas" accordion. 
+These are Pydantic v2 models that act as strict gatekeepers for all input and 
+output data:
+
+1. Data Sanitization:
+   - `UserResponse` explicitly omits sensitive database fields like `password_hash`.
+   - `CampaignCreate` enforces `goal_amount > 0` and `title` length >= 3 chars.
+   - `RegisterRequest` validates that `email` adheres to standard RFC email rules.
+
+2. Automatic Documentation:
+   - Every schema field in our Python code includes `examples=[...]`.
+   - That is why when you click "Try it out" in Swagger, the JSON request body 
+     is ALREADY pre-filled with realistic Nigerian NGO data (e.g. `+2348012345678`, 
+     `TXN-GTB-20260921-001`, `200000000` kobo)!
+
+================================================================================
+9. STEP-BY-STEP INTERACTIVE DEMO WALKTHROUGH (THE 7-STEP TEST FLIGHT)
+================================================================================
+
+Follow this exact 7-step sequence during your project demonstration to prove 
+the entire application works seamlessly through Swagger UI:
+
+STEP 1: Check System Health
+- Go to `GET /health` -> Click "Try it out" -> "Execute".
+- Show examiners the `HTTP 200 OK` response with `"status": "healthy"`.
+
+STEP 2: Log In as Admin
+- Go to `POST /api/v1/auth/login`.
+- Body: `{"email": "admin@givenaija.org", "password": "Admin123!"}`
+- Click "Execute". Copy the `access_token`.
+- Click the green "Authorize" button at top right, paste token, click "Authorize".
+
+STEP 3: Create a New Campaign
+- Go to `POST /api/v1/campaigns`.
+- Body:
+  {
+    "title": "Abuja Solar Hospital Power Project",
+    "description": "Providing uninterrupted solar power for pediatric wards.",
+    "goal_amount": 1000000000
+  }
+- Click "Execute" -> Returns `HTTP 201 Created` with Campaign ID (e.g. `2`).
+
+STEP 4: View Public Campaigns (Demonstrate Redis Caching)
+- Go to `GET /api/v1/campaigns` -> Click "Execute".
+- Show `"cached": false` on first call.
+- Click "Execute" again immediately -> Show `"cached": true` (served from Redis!).
+
+STEP 5: Log In as Finance & Record a Donation
+- Go to `POST /api/v1/auth/login`.
+- Body: `{"email": "finance@givenaija.org", "password": "Finance123!"}`
+- Copy the finance token -> Update Swagger Authorize button.
+- Go to `POST /api/v1/donations`.
+- Header `Idempotency-Key`: `demo-key-101`
+- Body:
+  {
+    "campaign_id": 2,
+    "amount": 10000000,
+    "bank_ref": "BANK-TRANSFER-ABUJA-001",
+    "member_id": 1
+  }
+- Click "Execute" -> Returns `HTTP 201 Created`.
+- Click "Execute" a SECOND time with the same parameters.
+- Show examiners: Returns `HTTP 200 OK` (Idempotent response! No double counting!).
+
+STEP 6: Verify Double-Entry Ledger Reconciliation
+- Re-authorize Swagger as Admin (`admin@givenaija.org`).
+- Go to `GET /api/v1/ledger/campaign/2/verify`.
+- Click "Execute".
+- Point out `"match": true` and `"status": "OK"`. This proves the immutable ledger 
+  sums match the campaign balance to the exact kobo!
+
+STEP 7: Inspect the Tamper-Proof Audit Trail
+- Go to `GET /api/v1/admin/audit-log`.
+- Click "Execute".
+- Show the chronological audit trail detailing the exact timestamp, actor ID, 
+  and action (`CAMPAIGN_CREATED`, `RECORD_DONATION`) that just took place!
+
+================================================================================
+10. SWAGGER DEFENSE & VIVA QUESTIONS WITH WINNING ANSWERS
+================================================================================
+
+Be ready for these common examiner questions about Swagger and OpenAPI:
+
+Q1: "Where does Swagger UI get its data from? Did you write an HTML file for it?"
+A1: "No manual HTML or JSON was written. FastAPI automatically inspects our 
+     Python route definitions, type annotations, and Pydantic schemas, compiling 
+     them into an OpenAPI 3.1 standard specification at /openapi.json. Swagger UI 
+     is a client-side JavaScript application that dynamically parses that JSON 
+     specification and renders the interactive browser interface."
+
+Q2: "How does Swagger know which endpoints need authentication?"
+A2: "In app/core/deps.py, we defined `security_scheme = HTTPBearer(auto_error=False)`. 
+     Whenever an endpoint includes `Depends(get_current_user)` or our role dependencies, 
+     FastAPI adds a `security: [{HTTPBearer: []}]` requirement to that endpoint's 
+     OpenAPI definition. Swagger UI recognizes this and places the padlock icon 
+     next to the endpoint."
+
+Q3: "How does the 'Authorize' button work under the hood?"
+A3: "When we paste our JWT access token into Swagger's Authorize modal, Swagger UI 
+     stores that token in the browser's local memory. For every subsequent request 
+     sent via the 'Execute' button, Swagger automatically adds the standard 
+     `Authorization: Bearer <token>` HTTP header to the outgoing request."
+
+Q4: "Can an attacker bypass authentication by calling endpoints outside Swagger?"
+A4: "Swagger UI is merely a frontend documentation client. Security is enforced 
+     on the backend inside our FastAPI route dependencies (`get_current_user`, 
+     `require_admin`, `require_finance`). Whether a request comes from Swagger, 
+     cURL, Postman, or an external script, any missing, malformed, or unauthorized 
+     token is immediately rejected with HTTP 401 Unauthorized or HTTP 403 Forbidden."
+
+Q5: "Why do your Swagger request bodies already have filled-in sample data?"
+A5: "In our Pydantic schema models (e.g. `RegisterRequest`, `DonationCreate`), we 
+     used Pydantic's `Field(..., examples=[...])`. FastAPI exports these field examples 
+     directly into the OpenAPI schema, allowing Swagger UI to pre-populate request 
+     payloads with clean, valid Nigerian NGO data for effortless testing."
+
+Q6: "What is the difference between /docs and /redoc?"
+A6: "Both render the exact same underlying OpenAPI specification. `/docs` uses 
+     Swagger UI, which is designed for interactive experimentation and testing 
+     requests directly in the browser. `/redoc` uses ReDoc, which provides a 
+     cleaner, publication-ready three-panel reading layout designed for API 
+     consumers and documentation archiving."
+
+================================================================================
+APPENDIX: PROJECT ARCHITECTURE & DATABASE FOUNDATIONS QUICK REFERENCE
+================================================================================
+
+- Backend Framework: FastAPI (Python 3.11+) with ASGI server Uvicorn.
+- Primary Production Database: PostgreSQL 16 (running via Docker on mapped port 5433).
+- Automated Test Database: In-Memory SQLite (`sqlite:///:memory:`) with StaticPool.
+- Local Fallback Database: Local SQLite file (`givenaija.db`) if Docker is offline.
+- Caching & Rate Limiting: Redis 7 with automatic cache invalidation on write.
+- Real-Time Push: Server-Sent Events (SSE) via `starlette.responses.StreamingResponse` 
+  and Google Cloud Firestore async sync.
+- Tamper-Proof Immutability: PostgreSQL PL/pgSQL & SQLite engine triggers blocking 
+  `UPDATE` and `DELETE` operations on `audit_log`.
+
+================================================================================
+                         END OF SWAGGER GUIDE
+     You now have complete mastery of GiveNaija's Swagger documentation!
 ================================================================================
