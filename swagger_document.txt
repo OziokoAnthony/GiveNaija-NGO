@@ -1,0 +1,426 @@
+================================================================================
+          GIVENAIJA NGO — SWAGGER UI & API ENDPOINTS MASTER GUIDE
+              "Explain It Like I'm 10 Years Old" Edition
+   Team Mighty Spark (Victor & Anthony) | Product 10: NGO Donations & Members
+================================================================================
+
+Welcome to your second master study document!
+
+While `document.txt` explains all the Python code, folders, and database 
+architecture, THIS document (`swagger_document.txt`) is your complete guide to 
+the **Swagger UI (Interactive API Playground)**.
+
+Think of Swagger like an interactive restaurant menu on a tablet screen:
+Instead of writing complex code, you can click on any dish (endpoint), type in 
+your order (JSON body), click "Execute", and watch the kitchen (FastAPI backend) 
+cook and deliver your meal (HTTP response) right before your eyes!
+
+Use this guide to study how every endpoint works, how to log in, what buttons to 
+click, and how to perform a flawless live demonstration for your examiners!
+
+================================================================================
+TABLE OF CONTENTS
+================================================================================
+1. What is Swagger UI & How to Open It?
+2. The Green "Authorize 🔓" Button Explained
+3. Pre-Generated VIP Tokens (Copy & Paste Ready)
+4. Complete Tour of Every Single Endpoint (Folder by Folder)
+   - Health Check
+   - Authentication (Registration & Login)
+   - Campaigns (Listing, Creation, Closing, Live SSE Stream)
+   - Donations, Pledges, Receipts & Statements
+   - Financial Ledger & Balance Reconciliation
+   - Audit Log (Admin Only)
+   - Webhooks (Payment Gateway Simulation)
+5. The 10-Minute Perfect Presentation Flow (Step-by-Step Demo Script)
+6. Error Codes Decoded (200, 201, 400, 401, 403, 404, 409, 429)
+
+================================================================================
+1. WHAT IS SWAGGER UI & HOW TO OPEN IT?
+================================================================================
+
+When your server is running, FastAPI automatically generates an interactive 
+website called Swagger UI.
+
+How to open it:
+  1. Make sure your server is running:
+     `uv run uvicorn app.main:app --reload --port 8000`
+  2. Open your web browser (Chrome, Edge, Firefox).
+  3. Go to this address:
+     http://127.0.0.1:8000/docs
+
+What you will see:
+  - A clean, beautiful webpage with the title "GiveNaija API".
+  - Colored bars grouped by domain:
+      * Blue for GET (fetching data)
+      * Green for POST (creating new data or recording actions)
+  - A bright green button at the top right labeled **"Authorize 🔓"**.
+
+================================================================================
+2. THE GREEN "AUTHORIZE 🔓" BUTTON EXPLAINED
+================================================================================
+
+Imagine an amusement park:
+  - Anyone can look at the map (Public endpoints like `GET /campaigns`).
+  - But only people with a **VIP wristband** can enter the roller coaster 
+    (Protected endpoints like `POST /donations` or `GET /admin/audit-log`).
+
+The green **"Authorize 🔓"** button is where you put on your VIP wristband!
+
+How to authorize yourself:
+  1. Click the green **"Authorize 🔓"** button at the top right of the Swagger page.
+  2. A pop-up box will appear asking for a **Value**.
+  3. Paste your JWT Access Token into the box.
+  4. Click **"Authorize"**, then click **"Close"**.
+  5. You will see the locks on protected endpoints turn **LOCKED 🔒**! 
+     Now you have full permission to call those endpoints!
+
+================================================================================
+3. PRE-GENERATED VIP TOKENS (COPY & PASTE READY)
+================================================================================
+
+You don't need to manually log in every time. Here are 3 pre-generated live 
+tokens ready for you to copy and paste into the Swagger Authorize box:
+
+--------------------------------------------------------------------------------
+TOKEN 1: 👑 ADMIN TOKEN (Full System Access)
+Use this to view audit logs, create campaigns, close campaigns, and verify ledger.
+--------------------------------------------------------------------------------
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBnaXZlbmFpamEub3JnIiwicm9sZSI6ImFkbWluIiwidXNlcl9pZCI6MSwiaWF0IjoxNzkwMDQ0Nzk4LCJleHAiOjE3OTAwNDgzOTh9.dXAwEhaal22nlaNYOspL-Gqic0w0_eHs8-7wBnjQDd4
+
+--------------------------------------------------------------------------------
+TOKEN 2: 💼 FINANCE OFFICER TOKEN (Financial Operations)
+Use this to record bank donations, view the campaign ledger, and export statements.
+--------------------------------------------------------------------------------
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmaW5hbmNlQGdpdmVuYWlqYS5vcmciLCJyb2xlIjoiZmluYW5jZSIsInVzZXJfaWQiOjIsImlhdCI6MTc5MDA0NDgwMSwiZXhwIjoxNzkwMDQ4NDAxfQ.JmaqYUbMvVcXnfVkzkqomYiYyFJ7QimtxFDNjMI4LP0
+
+--------------------------------------------------------------------------------
+TOKEN 3: 🤝 DONOR TOKEN (Member Access)
+Use this to create pledges, view your personal donation history, and see receipts.
+--------------------------------------------------------------------------------
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkb25vckBnaXZlbmFpamEub3JnIiwicm9sZSI6ImRvbm9yIiwidXNlcl9pZCI6MywiaWF0IjoxNzkwMDQ0ODAxLCJleHAiOjE3OTAwNDg0MDF9.vQUYi-QTs1tK0tqRB6Bc1j-8Go7lbTkpqGVzBoYWgvU
+
+================================================================================
+4. COMPLETE TOUR OF EVERY SINGLE ENDPOINT
+================================================================================
+
+Here is every endpoint in your API, explained simply:
+
+--------------------------------------------------------------------------------
+GROUP 1: HEALTH & SYSTEM
+--------------------------------------------------------------------------------
+
+1. GET /health
+   - Who can call it: Anyone (Public). No token needed.
+   - What it does: The heartbeat test! Asks the server: "Are you awake and alive?"
+   - How to test in Swagger: Click the blue bar -> "Try it out" -> "Execute".
+   - Success Response (200 OK):
+     ```json
+     {
+       "status": "healthy",
+       "app": "GiveNaija API",
+       "environment": "development"
+     }
+     ```
+
+--------------------------------------------------------------------------------
+GROUP 2: AUTHENTICATION (ID Cards & Logins)
+--------------------------------------------------------------------------------
+
+2. POST /api/v1/auth/register
+   - Who can call it: Anyone (Public).
+   - What it does: Creates a brand-new user account. If the role is "donor", 
+     it automatically creates a linked `Member` profile with a phone number 
+     and an unalterable audit log entry!
+   - Sample Request Body:
+     ```json
+     {
+       "email": "chidi@example.com",
+       "password": "Password123!",
+       "full_name": "Chidi Anagonye",
+       "phone": "+2348099887766",
+       "role": "donor"
+     }
+     ```
+   - Success Response (201 Created):
+     Returns the user details, assigned role, and member ID.
+   - Error Case: If you send an email that already exists, it returns 
+     `409 Conflict: EMAIL_ALREADY_REGISTERED`.
+
+3. POST /api/v1/auth/login
+   - Who can call it: Anyone with an account.
+   - What it does: Checks your email and password against the bcrypt hash. 
+     If correct, it gives you a signed JWT Bearer Token!
+   - Protected by: RateLimiterMiddleware (max 5 tries per minute, else 429).
+   - Sample Request Body:
+     ```json
+     {
+       "email": "admin@givenaija.org",
+       "password": "Admin123!"
+     }
+     ```
+   - Success Response (200 OK):
+     ```json
+     {
+       "access_token": "eyJhbGciOiJIUzI1NiIsInR5...",
+       "token_type": "bearer",
+       "user": {
+         "id": 1,
+         "email": "admin@givenaija.org",
+         "role": "admin"
+       }
+     }
+     ```
+
+--------------------------------------------------------------------------------
+GROUP 3: CAMPAIGNS (Fundraising Projects)
+--------------------------------------------------------------------------------
+
+4. GET /api/v1/campaigns
+   - Who can call it: Anyone (Public).
+   - What it does: Lists all fundraising causes. Uses Redis caching!
+     The first time you call it, it reads from PostgreSQL. For the next 60 
+     seconds, it reads from Redis in 0.001 seconds!
+   - Success Response (200 OK):
+     Returns a list of campaigns (Borehole, Lagos Orphanage, Enugu Medical Outreach).
+
+5. POST /api/v1/campaigns
+   - Who can call it: Admin only 👑 (requires Admin token).
+   - What it does: Creates a new fundraising goal. Clears the Redis cache so 
+     everyone sees the new campaign immediately.
+   - Sample Request Body:
+     ```json
+     {
+       "title": "Abuja Solar Streetlights Project",
+       "description": "Providing solar lighting to rural community streets.",
+       "goal_amount": 500000000
+     }
+     ```
+     *(Note: 500000000 kobo = 5,000,000 Naira)*
+   - Success Response (201 Created).
+
+6. POST /api/v1/campaigns/{id}/close
+   - Who can call it: Admin only 👑.
+   - What it does: Closes a campaign. Once closed, NOBODY can ever donate or 
+     pledge to it again!
+   - Success Response (200 OK): `status: "closed"`.
+
+7. GET /api/v1/campaigns/{id}/stream
+   - Who can call it: Anyone (Public).
+   - What it does: Real-Time Server-Sent Events (SSE) stream!
+     Opens an active radio connection. Whenever someone donates to this campaign, 
+     the server sends a live JSON message down the wire:
+     ```text
+     data: {"event": "donation_received", "amount": 50000.0, "donor": "Anonymous"}
+     ```
+     Sends a `: heartbeat` comment every 15 seconds to keep the pipe open.
+
+--------------------------------------------------------------------------------
+GROUP 4: DONATIONS (The Money Engine)
+--------------------------------------------------------------------------------
+
+8. POST /api/v1/donations
+   - Who can call it: Finance Officer 💼 or Admin 👑.
+   - What it does: The core transaction engine! Solves the Hard Problem!
+     Takes an offline bank alert reference (e.g. "TXN-BOREHOLE-099") and:
+       1. Rejects if campaign is closed (409 Conflict).
+       2. Rejects if bank_ref was already recorded (409 Conflict).
+       3. Atomically inserts Donation, increments Campaign total, creates 
+          immutable Ledger CREDIT, writes Audit Log, and saves Idempotency Key!
+       4. Pushes real-time SSE notification and purges Redis cache.
+   - Sample Request Body:
+     ```json
+     {
+       "campaign_id": 1,
+       "amount": 2500000,
+       "bank_ref": "TXN-LIVE-DEMO-001"
+     }
+     ```
+     *(Note: 2500000 kobo = 25,000 Naira)*
+   - Optional Header: `Idempotency-Key: demo-key-12345`
+   - Success Response (201 Created).
+
+9. POST /api/v1/pledges
+   - Who can call it: Authenticated Donor 🤝.
+   - What it does: Records a promise by a member to donate in the future.
+   - Sample Request Body:
+     ```json
+     {
+       "campaign_id": 1,
+       "amount": 1000000
+     }
+     ```
+   - Success Response (201 Created).
+
+10. GET /api/v1/donations/me
+    - Who can call it: Authenticated Donor 🤝.
+    - What it does: Returns a personal list of all donations made by the 
+      currently logged-in donor.
+
+11. GET /api/v1/receipts/{id}
+    - Who can call it: Anyone with the receipt ID.
+    - What it does: Fetches the permanent, numbered receipt (e.g. `RCPT-000001-DEMO`).
+      Guaranteed to be created exactly once per donation.
+
+12. GET /api/v1/reports/statement
+    - Who can call it: Finance Officer 💼 or Admin 👑.
+    - What it does: Financial accounting report export. Allows filtering by 
+      `start_date` and `end_date`.
+
+--------------------------------------------------------------------------------
+GROUP 5: FINANCIAL LEDGER (Double-Entry Accounting)
+--------------------------------------------------------------------------------
+
+13. GET /api/v1/ledger/campaign/{campaign_id}
+    - Who can call it: Finance Officer 💼 or Admin 👑.
+    - What it does: Returns every immutable CREDIT row for that campaign from 
+      the `ledger_entries` table.
+
+14. GET /api/v1/ledger/me
+    - Who can call it: Authenticated Donor 🤝.
+    - What it does: Returns the donor's personal financial ledger entries.
+
+15. GET /api/v1/ledger/campaign/{campaign_id}/verify
+    - Who can call it: Admin only 👑.
+    - What it does: **The Reconciliation Auditor!**
+      Sums all CREDIT rows in `ledger_entries` and compares them against 
+      `campaign.raised_amount`.
+    - Success Response (200 OK):
+      ```json
+      {
+        "campaign_id": 1,
+        "ledger_total_ngn": "75000.00",
+        "campaign_raised_amount_ngn": "75000.00",
+        "match": true,
+        "status": "OK"
+      }
+      ```
+      *(If anyone ever altered the campaign total without a ledger entry, 
+      match will be FALSE and status will show MISMATCH!)*
+
+--------------------------------------------------------------------------------
+GROUP 6: AUDIT TRAIL (The Indelible Diary)
+--------------------------------------------------------------------------------
+
+16. GET /api/v1/admin/audit-log
+    - Who can call it: Admin only 👑.
+    - What it does: Displays the tamper-proof history of who did what, when, 
+      and to which table. Protected by database triggers that block UPDATE/DELETE.
+
+--------------------------------------------------------------------------------
+GROUP 7: WEBHOOKS (Payment Gateway Integration)
+--------------------------------------------------------------------------------
+
+17. POST /api/v1/webhooks/payment
+    - Who can call it: Payment gateways (Paystack / Flutterwave) or simulation scripts.
+    - What it does:
+      1. Reads raw bytes and checks cryptographic `X-Signature` header.
+      2. Deduplicates event_id (returns 200 without duplicate action).
+      3. Handles orphan payments (unknown campaign references) by logging them 
+         safely instead of crashing.
+      4. If valid, runs the atomic donation + ledger + audit + SSE flow!
+
+================================================================================
+5. THE 10-MINUTE PERFECT PRESENTATION FLOW (DEMO SCRIPT)
+================================================================================
+
+Follow this exact step-by-step script during your project presentation. 
+It demonstrates every single requirement seamlessly:
+
+STEP 1: Open Swagger UI & Check Health (1 Minute)
+  - Open http://127.0.0.1:8000/docs.
+  - Expand `GET /health`, click "Try it out" -> "Execute".
+  - Show the examiner: `{"status": "healthy"}`. Explain that the server is 
+    running on FastAPI with Dockerized PostgreSQL and Redis.
+
+STEP 2: Authenticate as Finance Officer (1 Minute)
+  - Expand `POST /api/v1/auth/login`. Click "Try it out".
+  - Send email: `finance@givenaija.org`, password: `Finance123!`.
+  - Copy the returned `access_token`.
+  - Click the green **"Authorize 🔓"** button at the top right, paste the token, 
+    and click Authorize. Show the examiner that the padlocks are now locked 🔒!
+
+STEP 3: Check Public Campaigns & Redis Cache (1 Minute)
+  - Expand `GET /api/v1/campaigns` and execute.
+  - Show the 3 campaigns (Borehole, Lagos Orphanage, Enugu Medical Outreach).
+  - Explain: "This response is cached in Redis with a 60-second TTL to ensure 
+    sub-millisecond load times under high donor traffic."
+
+STEP 4: Record a Real Donation (2 Minutes)
+  - Expand `POST /api/v1/donations`. Click "Try it out".
+  - Use payload:
+    ```json
+    {
+      "campaign_id": 1,
+      "amount": 2500000,
+      "bank_ref": "TXN-EXAMINER-DEMO-001"
+    }
+    ```
+  - Click "Execute". Show the `201 Created` response.
+  - Explain: "In one single atomic transaction, the system recorded the donation, 
+    updated the campaign total, created a double-entry ledger credit, wrote an 
+    immutable audit log row, and purged the Redis cache."
+
+STEP 5: PROVE THE HARD PROBLEM — Double-Counting Block (2 Minutes)
+  - Without changing anything, click "Execute" a SECOND TIME with the exact 
+    same reference (`TXN-EXAMINER-DEMO-001`).
+  - Watch the server return **`HTTP 409 Conflict`**:
+    ```json
+    {
+      "error": {
+        "code": "DUPLICATE_BANK_REFERENCE",
+        "message": "Bank reference 'TXN-EXAMINER-DEMO-001' has already been recorded."
+      }
+    }
+    ```
+  - Tell the examiner: "This is our Layer 1 and Layer 2 defense! Even under network 
+    retries or human error, no bank reference can ever be counted twice!"
+
+STEP 6: Reconcile the Financial Ledger (2 Minutes)
+  - Switch to Admin authorization (paste the Admin Token from Section 3).
+  - Scroll down to `GET /api/v1/ledger/campaign/1/verify`. Click "Execute".
+  - Show the examiner:
+    ```json
+    {
+      "match": true,
+      "status": "OK"
+    }
+    ```
+  - Tell the examiner: "The system just summed all individual immutable credit rows 
+    in our financial ledger and mathematically proved that it matches the 
+    campaign's raised_amount counter. Zero Naira was lost or miscounted."
+
+STEP 7: Inspect the Unalterable Audit Trail (1 Minute)
+  - Scroll down to `GET /api/v1/admin/audit-log`. Click "Execute".
+  - Show the examiner the audit trail showing who recorded the donation, when, 
+    and what details were saved.
+  - Conclude: "This audit log is protected by PostgreSQL database triggers that 
+    physically reject any SQL UPDATE or DELETE command!"
+
+================================================================================
+6. ERROR CODES DECODED (WHAT THEY MEAN IN GIVENAIJA)
+================================================================================
+
+If an examiner asks what HTTP status codes your API emits:
+
+* **200 OK:** Everything succeeded (e.g. login, listing campaigns, ledger verification).
+* **201 Created:** A brand-new record was successfully created in the database 
+  (e.g. registration, campaign creation, donation recording).
+* **400 Bad Request:** Missing or malformed data in the JSON body.
+* **401 Unauthorized:** Invalid password, expired JWT token, or missing/invalid 
+  HMAC webhook signature.
+* **403 Forbidden:** The user is logged in, but their role is not allowed to 
+  perform this action (e.g. a Donor trying to view the Admin audit log).
+* **404 Not Found:** The requested campaign ID or receipt ID does not exist in 
+  the database.
+* **409 Conflict:** Core hard-problem defense! Triggered when:
+  - Someone tries to register an email that already exists.
+  - Someone tries to record a bank reference that was already recorded.
+  - Someone tries to donate to a campaign whose status is "closed".
+* **429 Too Many Requests:** Rate-limiting defense! Triggered when an IP attempts 
+  more than 5 logins in 60 seconds.
+
+================================================================================
+                         END OF SWAGGER GUIDE
+            You now hold the complete master key to GiveNaija.
+================================================================================
